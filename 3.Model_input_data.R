@@ -82,11 +82,13 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
-#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/       
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
-#       /Taxon-cleaner              : species classification (see supplement)       
+#       /SMPDS                      : updated information regarding SMPDS metadata (see SMPDSv2_updated_meta_info.csv)
+#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/
+#       /ZANON
+#        /forest_cover              : Zanon et al. (2017) tree cover data from https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2018.00253/full
 #   /intermediate_output  
 #     /vegetation                   : saved intermediate data
 #       /copernicus                 : amalgamated maps based on tree cover data
@@ -116,11 +118,13 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
-# dir.create("data/input//SPECIAL-EPD")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
-# dir.create("data/input/Taxon-cleaner")
+# dir.create("data/input//SMPDS")
+# dir.create("data/input/SPECIAL-EPD")
+# dir.create("data/input/ZANON")
+# dir.create("data/input/ZANON/forest_cover")
 # dir.create("data/intermediate_output")
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
@@ -275,7 +279,7 @@ tree_shannon <- pollen_single_per %>%
   dplyr::filter(terrestrial_pollen_sum == "yes")  %>%   #select only those records within TPS
   dplyr::mutate(europe = dplyr::if_else(is.na(europe), "none", europe)) %>% 
   dplyr::filter(europe != "not native to Europe") %>%     #take out species that are not native
-  dplyr::filter(tap_sap_nap == "TAP") %>% #limit to trees  
+  dplyr::filter(ap_sp_hp == "AP") %>% #limit to trees  
   dplyr::select(ID_ENTITY, clean_taxon_name, percentage_cover) %>%   
   tidyr::pivot_wider(names_from = clean_taxon_name, values_from = percentage_cover) 
 
@@ -286,7 +290,7 @@ tree_shannon1 <- pollen_single_per %>%
   dplyr::filter(terrestrial_pollen_sum == "yes")  %>%   #select only those records within TPS
   dplyr::mutate(europe = dplyr::if_else(is.na(europe), "none", europe)) %>% 
   dplyr::filter(europe != "not native to Europe") %>%    #take out species that are not native
-  dplyr::filter(tap_sap_nap == "TAP") %>% #limit to trees 
+  dplyr::filter(ap_sp_hp == "AP") %>% #limit to trees 
   dplyr::select(ID_ENTITY, clean_taxon_name, percentage_cover) %>%   
   tidyr::pivot_wider(names_from = clean_taxon_name, values_from = percentage_cover) %>% 
   dplyr::select(-ID_ENTITY) %>% 

@@ -81,11 +81,13 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
-#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/       
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
-#       /Taxon-cleaner              : species classification (see supplement)       
+#       /SMPDS                      : updated information regarding SMPDS metadata (see SMPDSv2_updated_meta_info.csv)
+#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/
+#       /ZANON
+#        /forest_cover              : Zanon et al. (2017) tree cover data from https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2018.00253/full
 #   /intermediate_output  
 #     /vegetation                   : saved intermediate data
 #       /copernicus                 : amalgamated maps based on tree cover data
@@ -115,11 +117,13 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
-# dir.create("data/input//SPECIAL-EPD")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
-# dir.create("data/input/Taxon-cleaner")
+# dir.create("data/input//SMPDS")
+# dir.create("data/input/SPECIAL-EPD")
+# dir.create("data/input/ZANON")
+# dir.create("data/input/ZANON/forest_cover")
 # dir.create("data/intermediate_output")
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
@@ -175,22 +179,22 @@ ggplot2::ggplot(data = euro_map_3035)+ #map of all pollen info, by type of site
   geom_sf(pollen_records_xy_buffer4, mapping = aes(color = "red"))
 
 #Build tree model
-sap_cover <- pollen_extracted_info %>% #SAP cover
+sp_cover <- pollen_extracted_info %>% #SP cover
   dplyr::select(ID_ENTITY, mean, prop_na, taxa_names[1]:last(taxa_names)) %>%
   dplyr::rename(tree = 2, prop_na = 3) %>%
   tidyr::drop_na() %>% 
   tidyr::pivot_longer(!c(ID_ENTITY, tree, prop_na), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
   dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") %>% 
   dplyr::filter(terrestrial_pollen_sum == "yes") %>% #select only those taxa within TPS
-  dplyr::filter(tap_sap_nap == "SAP") %>%      #just SAP for % calculation
+  dplyr::filter(ap_sp_hp == "SP") %>%      #just SP for % calculation
   dplyr::group_by(ID_ENTITY) %>% 
-  dplyr::summarise(sap_cover = sum(percentage_cover)) %>% #calculate % cover
+  dplyr::summarise(sp_cover = sum(percentage_cover)) %>% #calculate % cover
   dplyr::ungroup() %>% 
-  dplyr::mutate(sap_cover = sap_cover/100) 
+  dplyr::mutate(sp_cover = sp_cover/100) 
 
-rio::export(sap_cover, "data/intermediate_output/vegetation/sap_cover.csv")
+rio::export(sp_cover, "data/intermediate_output/vegetation/sp_cover.csv")
 
-tap_tree_cover <- pollen_extracted_info %>% 
+ap_tree_cover <- pollen_extracted_info %>% 
   dplyr::select(ID_ENTITY, mean, prop_na, taxa_names[1]:last(taxa_names)) %>%
   dplyr::rename(tree = 2, prop_na = 3) %>% 
   tidyr::drop_na() %>%     
@@ -199,31 +203,31 @@ tap_tree_cover <- pollen_extracted_info %>%
   dplyr::filter(terrestrial_pollen_sum == "yes") %>% #select only those taxa within TPS
   dplyr::mutate(europe = dplyr::if_else(is.na(europe), "none", europe)) %>%
   dplyr::filter(europe != "not native to Europe") %>% #take out non-natives
-  dplyr::filter(tap_sap_nap == "TAP") %>%    #just TAP for total TAP% calculation
-  dplyr::mutate(needle = dplyr::if_else(is.na(tap_needle_broad), "unknown", tap_needle_broad)) %>%   #need to remove NA
+  dplyr::filter(ap_sp_hp == "AP") %>%    #just AP for total AP% calculation
+  dplyr::mutate(needle = dplyr::if_else(is.na(ap_needle_broad), "unknown", ap_needle_broad)) %>%   #need to remove NA
   dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
   dplyr::filter(site_type %in% c("lake", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh")) %>% #Limit analysis to Lakes and bog(ish)
   dplyr::filter(!entity_type %in% c("litter", "soil sample","pollen trap", "moss polster or moss")) %>%
   dplyr::group_by(ID_ENTITY) %>% 
-  dplyr::summarise(tree = max(tree), prop_na = max(prop_na), tap_cover = sum(percentage_cover), needle = sum(percentage_cover[needle == "needle"])) %>% #calculate % cover
+  dplyr::summarise(tree = max(tree), prop_na = max(prop_na), ap_cover = sum(percentage_cover), needle = sum(percentage_cover[needle == "needle"])) %>% #calculate % cover
   dplyr::ungroup() %>% 
-  dplyr::mutate(difference = tap_cover - tree) %>%
-  dplyr::mutate(tree = tree/100, tap_cover = tap_cover/100, needle = needle/100) %>% 
-  dplyr::mutate(needle_share = needle/tap_cover) %>% #share of total TAP that is needleleaf
+  dplyr::mutate(difference = ap_cover - tree) %>%
+  dplyr::mutate(tree = tree/100, ap_cover = ap_cover/100, needle = needle/100) %>% 
+  dplyr::mutate(needle_share = needle/ap_cover) %>% #share of total AP that is needleleaf
   dplyr::left_join(dplyr::select(pollen_extracted_info, ID_ENTITY, X3035, Y3035, elevation, latitude,longitude, basin_size), by = "ID_ENTITY") %>% #add coordinate info
   dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
   dplyr::filter(!(basin_size > 0.5 & site_type %in% c("terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh"))) %>% #filter bogs larger than 0.5 (400m radius as per Githumbi)
   dplyr::filter(elevation <1000) %>% #add elevation filter
   dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
   dplyr::left_join(tree_shannon3, by = "ID_ENTITY") %>%  #add info about species diversity in pollen record (TPS only)
-  dplyr::left_join(sap_cover, by = "ID_ENTITY") %>% 
-  dplyr::filter(tap_cover > 0) %>%            #because needleleaf share will be NaN for single record
+  dplyr::left_join(sp_cover, by = "ID_ENTITY") %>% 
+  dplyr::filter(ap_cover > 0) %>%            #because needleleaf share will be NaN for single record
   dplyr::filter(prop_na < 0.5)      #limit associated with no of NA in extracted tree cover
 
-rio::export(tap_tree_cover, "data/intermediate_output/vegetation/tap_tree_cover.csv")
+rio::export(ap_tree_cover, "data/intermediate_output/vegetation/ap_tree_cover.csv")
 
 #Lake only
-tap_tree_cover_lake <- pollen_extracted_info %>% 
+ap_tree_cover_lake <- pollen_extracted_info %>% 
   dplyr::select(ID_ENTITY, mean, prop_na, taxa_names[1]:last(taxa_names)) %>%
   dplyr::rename(tree = 2, prop_na = 3) %>% 
   tidyr::drop_na() %>%     
@@ -232,25 +236,25 @@ tap_tree_cover_lake <- pollen_extracted_info %>%
   dplyr::filter(terrestrial_pollen_sum == "yes") %>% #select only those taxa within TPS
   dplyr::mutate(europe = dplyr::if_else(is.na(europe), "none", europe)) %>%
   dplyr::filter(europe != "not native to Europe") %>% #take out non-natives
-  dplyr::filter(tap_sap_nap == "TAP") %>%    #just TAP for total TAP% calculation
-  dplyr::mutate(needle = dplyr::if_else(is.na(tap_needle_broad), "unknown", tap_needle_broad)) %>%   #need to remove NA
+  dplyr::filter(ap_sp_hp == "AP") %>%    #just AP for total AP% calculation
+  dplyr::mutate(needle = dplyr::if_else(is.na(ap_needle_broad), "unknown", ap_needle_broad)) %>%   #need to remove NA
   dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
   dplyr::filter(site_type %in% c("lake")) %>% #Limit analysis to Lakes
   dplyr::filter(!entity_type %in% c("litter", "soil sample","pollen trap", "moss polster or moss")) %>%
   dplyr::group_by(ID_ENTITY) %>% 
-  dplyr::summarise(tree = max(tree), prop_na = max(prop_na), tap_cover = sum(percentage_cover), needle = sum(percentage_cover[needle == "needle"])) %>% #calculate % cover
+  dplyr::summarise(tree = max(tree), prop_na = max(prop_na), ap_cover = sum(percentage_cover), needle = sum(percentage_cover[needle == "needle"])) %>% #calculate % cover
   dplyr::ungroup() %>% 
-  dplyr::mutate(difference = tap_cover - tree) %>%
-  dplyr::mutate(tree = tree/100, tap_cover = tap_cover/100, needle = needle/100) %>% 
-  dplyr::mutate(needle_share = needle/tap_cover) %>% #share of total TAP that is needleleaf
+  dplyr::mutate(difference = ap_cover - tree) %>%
+  dplyr::mutate(tree = tree/100, ap_cover = ap_cover/100, needle = needle/100) %>% 
+  dplyr::mutate(needle_share = needle/ap_cover) %>% #share of total AP that is needleleaf
   dplyr::left_join(dplyr::select(pollen_extracted_info, ID_ENTITY, X3035, Y3035, elevation, latitude,longitude, basin_size), by = "ID_ENTITY") %>% #add coordinate info
   dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
   dplyr::filter(!(basin_size > 0.5 & site_type %in% c("terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh"))) %>% #filter bogs larger than 0.5 (400m radius as per Githumbi)
   dplyr::filter(elevation <1000) %>% #add elevation filter
   dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
   dplyr::left_join(tree_shannon3, by = "ID_ENTITY") %>%  #add info about species diversity in pollen record (TPS only)
-  dplyr::left_join(sap_cover, by = "ID_ENTITY") %>% 
-  dplyr::filter(tap_cover > 0) %>%         #because needleleaf share will be NaN for single record
+  dplyr::left_join(sp_cover, by = "ID_ENTITY") %>% 
+  dplyr::filter(ap_cover > 0) %>%         #because needleleaf share will be NaN for single record
   dplyr::filter(prop_na < 0.5)      #limit associated with no of NA in extracted tree cover
 
 # ---------------------------------------------------------
@@ -259,15 +263,15 @@ tap_tree_cover_lake <- pollen_extracted_info %>%
 # 3. Run model and analysis
 # ---------------------------------------------------------
 # ---------------------------------------------------------
-summary(tap_tree_cover$tree)
-hist(tap_tree_cover$tree)
-tree_tap_correlation <- cor(tap_tree_cover$tree, tap_tree_cover$tap_cover)
+summary(ap_tree_cover$tree)
+hist(ap_tree_cover$tree)
+tree_ap_correlation <- cor(ap_tree_cover$tree, ap_tree_cover$ap_cover)
 
-tree_beta <- betareg::betareg(tree~tap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sap_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(tap_tree_cover, tree > 0)) #final normal
-tree_beta_stat <- betareg::betareg(tree~tap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sap_cover*elevation, data = dplyr::filter(tap_tree_cover, tree > 0)) #without variable precision
-tree_beta_poly <- betareg::betareg(tree~tap_cover*elevation+poly(needle_share,2)+poly(tree_shannon,2)*elevation+site_model*elevation+sap_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(tap_tree_cover, tree > 0)) #final normal poly
-tree_beta_no_interaction <- betareg::betareg(tree~tap_cover+poly(needle_share,2)+poly(tree_shannon,2)+site_model+sap_cover+elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(tap_tree_cover, tree > 0)) #model with no interaction effects
-tree_beta_lake <- betareg::betareg(tree~tap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sap_cover*elevation|needle_share+tree_shannon,data = dplyr::filter(tap_tree_cover_lake, tree > 0)) #final normal with just lake sites
+tree_beta <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal
+tree_beta_stat <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation, data = dplyr::filter(ap_tree_cover, tree > 0)) #without variable precision
+tree_beta_poly <- betareg::betareg(tree~ap_cover*elevation+poly(needle_share,2)+poly(tree_shannon,2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal poly
+tree_beta_no_interaction <- betareg::betareg(tree~ap_cover+poly(needle_share,2)+poly(tree_shannon,2)+site_model+sp_cover+elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #model with no interaction effects
+tree_beta_lake <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation|needle_share+tree_shannon,data = dplyr::filter(ap_tree_cover_lake, tree > 0)) #final normal with just lake sites
 
 saveRDS(tree_beta, file = "data/intermediate_output/vegetation/tree_beta.rda") #store model
 saveRDS(tree_beta_lake, file = "data/intermediate_output/vegetation/tree_beta_lake.rda") #store lake model
@@ -280,11 +284,11 @@ summary(tree_beta_poly)
 summary(tree_beta_no_interaction)
 summary(tree_beta_lake)
 
-1 - exp((2/nrow(dplyr::filter(tap_tree_cover, tree >= 0))) * (logLik(update(tree_beta, ~1))[1] - logLik(tree_beta)[1])) #Cox_snell R2
-1 - exp((2/nrow(dplyr::filter(tap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_stat, ~1))[1] - logLik(tree_beta_stat)[1])) #Cox_snell R2
-1 - exp((2/nrow(dplyr::filter(tap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_poly, ~1))[1] - logLik(tree_beta_poly)[1])) #Cox_snell R2
-1 - exp((2/nrow(dplyr::filter(tap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_interaction, ~1))[1] - logLik(tree_beta_no_interaction)[1])) #Cox_snell R2
-1 - exp((2/nrow(dplyr::filter(tap_tree_cover_lake, tree >= 0))) * (logLik(update(tree_beta_lake, ~1))[1] - logLik(tree_beta_lake)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta, ~1))[1] - logLik(tree_beta)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_stat, ~1))[1] - logLik(tree_beta_stat)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_poly, ~1))[1] - logLik(tree_beta_poly)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_interaction, ~1))[1] - logLik(tree_beta_no_interaction)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover_lake, tree >= 0))) * (logLik(update(tree_beta_lake, ~1))[1] - logLik(tree_beta_lake)[1])) #Cox_snell R2
 
 AIC(tree_beta)
 lmtest::lrtest(tree_beta)
@@ -322,22 +326,22 @@ plot(tree_beta, which = 1, type = "deviance", sub.caption = "")
 # ---------------------------------------------------------
 # ---------------------------------------------------------
 
-tap_tree_cover_nona <- tap_tree_cover %>% 
+ap_tree_cover_nona <- ap_tree_cover %>% 
   dplyr::filter(tree > 0) %>% 
   dplyr::mutate(ID = dplyr::row_number()) 
-dataset_test_ls <- split(tap_tree_cover_nona,1:nrow(tap_tree_cover_nona))
+dataset_test_ls <- split(ap_tree_cover_nona,1:nrow(ap_tree_cover_nona))
 
-dataset_train_ls <- lapply(unique(tap_tree_cover_nona$ID), function(x){
-  dplyr::filter(tap_tree_cover_nona, ID != x)
+dataset_train_ls <- lapply(unique(ap_tree_cover_nona$ID), function(x){
+  dplyr::filter(ap_tree_cover_nona, ID != x)
 })
 dataset_train_mod_ls <- parallel::mclapply(dataset_train_ls, function(x){
-  betareg::betareg(tree~tap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sap_cover*elevation|tree_shannon+site_model+needle_share, data = x,link = "logit") #Model choice
+  betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|tree_shannon+site_model+needle_share, data = x,link = "logit") #Model choice
 }, mc.cores = 8)
 dataset_pred_ls <- purrr::map2(dataset_train_mod_ls,dataset_test_ls, betareg::predict, type = "response")
 dataset_pred_df <- dplyr::bind_rows(dataset_pred_ls) %>% 
   dplyr::mutate(ID = dplyr::row_number())
 
-dataset_pred_test <- tap_tree_cover_nona %>% #Calculate error
+dataset_pred_test <- ap_tree_cover_nona %>% #Calculate error
   dplyr::mutate(prediction = dataset_pred_df$`1`) %>% 
   dplyr::mutate(E = tree - prediction) %>%
   dplyr::mutate(SE = E^2) 
@@ -350,22 +354,22 @@ dataset_r2 <- cor(dataset_pred_test$tree, dataset_pred_test$prediction)^2
 rio::export(dataset_pred_test, "data/intermediate_output/vegetation/loocv.csv")
 
 
-tap_tree_cover_lake_nona <- tap_tree_cover_lake %>% 
+ap_tree_cover_lake_nona <- ap_tree_cover_lake %>% 
   dplyr::filter(tree > 0) %>% 
   dplyr::mutate(ID = dplyr::row_number()) 
-dataset_test_lake_ls <- split(tap_tree_cover_lake_nona,1:nrow(tap_tree_cover_lake_nona))
+dataset_test_lake_ls <- split(ap_tree_cover_lake_nona,1:nrow(ap_tree_cover_lake_nona))
 
-dataset_train_lake_ls <- lapply(unique(tap_tree_cover_lake_nona$ID), function(x){
-  dplyr::filter(tap_tree_cover_lake_nona, ID != x)
+dataset_train_lake_ls <- lapply(unique(ap_tree_cover_lake_nona$ID), function(x){
+  dplyr::filter(ap_tree_cover_lake_nona, ID != x)
 })
 dataset_train_mod_lake_ls <- parallel::mclapply(dataset_train_lake_ls, function(x){
-  betareg::betareg(tree~tap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sap_cover*elevation|tree_shannon+needle_share, data = x,link = "logit") #Model choice
+  betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation|tree_shannon+needle_share, data = x,link = "logit") #Model choice
 }, mc.cores = 8)
 dataset_pred_lake_ls <- purrr::map2(dataset_train_mod_lake_ls,dataset_test_lake_ls, betareg::predict, type = "response")
 dataset_pred_lake_df <- dplyr::bind_rows(dataset_pred_lake_ls) %>% 
   dplyr::mutate(ID = dplyr::row_number())
 
-dataset_pred_lake_test <- tap_tree_cover_lake_nona %>% #Calculate error
+dataset_pred_lake_test <- ap_tree_cover_lake_nona %>% #Calculate error
   dplyr::mutate(prediction = dataset_pred_lake_df$`1`) %>% 
   dplyr::mutate(E = tree - prediction) %>%
   dplyr::mutate(SE = E^2) 

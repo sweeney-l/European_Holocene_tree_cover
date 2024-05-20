@@ -82,11 +82,13 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
-#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/       
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
-#       /Taxon-cleaner              : species classification (see supplement)       
+#       /SMPDS                      : updated information regarding SMPDS metadata (see SMPDSv2_updated_meta_info.csv)
+#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/
+#       /ZANON
+#        /forest_cover              : Zanon et al. (2017) tree cover data from https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2018.00253/full
 #   /intermediate_output  
 #     /vegetation                   : saved intermediate data
 #       /copernicus                 : amalgamated maps based on tree cover data
@@ -116,11 +118,13 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
-# dir.create("data/input//SPECIAL-EPD")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
-# dir.create("data/input/Taxon-cleaner")
+# dir.create("data/input//SMPDS")
+# dir.create("data/input/SPECIAL-EPD")
+# dir.create("data/input/ZANON")
+# dir.create("data/input/ZANON/forest_cover")
 # dir.create("data/intermediate_output")
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
@@ -231,7 +235,7 @@ cop_cover_tree <- terra::rast(cop_file_list_tree) %>% #import and crop to extent
 cop_cover_tree_mean <- terra::mean(cop_cover_tree, na.rm = TRUE) #take average across years
 terra::writeRaster(cop_cover_tree_mean, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_100m.tif", overwrite = TRUE)
 cop_cover_tree_mean_3035 <- terra::project(cop_cover_tree_mean, "EPSG:3035")
-terra::writeRaster(cop_tree_cover_comb_3035, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_3035_100m.tif", overwrite = TRUE)
+terra::writeRaster(cop_cover_tree_mean_3035, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_3035_100m.tif", overwrite = TRUE)
 
 cop_tree_cover_masked <- terra::mask(cop_cover_tree_mean, cop_mask, inverse = TRUE)
 terra::writeRaster(cop_tree_cover_masked, "data/intermediate_output/vegetation/copernicus/cop_masked_tree_cover_100m.tif", overwrite = TRUE)

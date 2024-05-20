@@ -81,11 +81,13 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
-#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/       
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
-#       /Taxon-cleaner              : species classification (see supplement)       
+#       /SMPDS                      : updated information regarding SMPDS metadata (see SMPDSv2_updated_meta_info.csv)
+#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/
+#       /ZANON
+#        /forest_cover              : Zanon et al. (2017) tree cover data from https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2018.00253/full
 #   /intermediate_output  
 #     /vegetation                   : saved intermediate data
 #       /copernicus                 : amalgamated maps based on tree cover data
@@ -115,11 +117,13 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
-# dir.create("data/input//SPECIAL-EPD")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
-# dir.create("data/input/Taxon-cleaner")
+# dir.create("data/input/SMPDS")
+# dir.create("data/input/SPECIAL-EPD")
+# dir.create("data/input/ZANON")
+# dir.create("data/input/ZANON/forest_cover")
 # dir.create("data/intermediate_output")
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
@@ -132,6 +136,8 @@ library(tidyverse)
 
 
 # ---------------------------------------------------------
+
+
 
 # 2. Load in necessary data
 # ---------------------------------------------------------
@@ -167,7 +173,7 @@ modern_comp_zanID <- rio::import("data/intermediate_output/vegetation/modern_com
 peak_range_comp_all_bioregiongr4_median_loc <- rio::import("data/intermediate_output/vegetation/peak_range_comp_all_bioregiongr4_median_loc.csv")
 recon_tree_locations <- rio::import("data/intermediate_output/vegetation/recon_tree.csv")
 refitted_model_df <- rio::import("data/intermediate_output/vegetation/refitted_model_df.csv")
-tap_tree_cover <- rio::import("data/intermediate_output/vegetation/tap_tree_cover.csv")
+ap_tree_cover <- rio::import("data/intermediate_output/vegetation/ap_tree_cover.csv")
 taxa_cat <- rio::import("data/input/taxa_cat.csv")
 tree_beta <- readRDS("data/intermediate_output/vegetation/tree_beta.rda") #modern tree cover model
 tree_beta_lake <- readRDS("data/intermediate_output/vegetation/tree_beta_lake.rda") #modern tree cover model (4.Tree_model)
@@ -201,7 +207,7 @@ cop_masked_tree_cover_plot <- ggplotify::as.ggplot(~terra::plot(cop_tree_cover_m
 model_locations_plot <- ggplot2::ggplot(data = euro_map_4326)+
   geom_sf(fill = "seashell") +
   theme(panel.background = element_rect(fill = "aliceblue"))+
-  geom_point(data = tap_tree_cover, mapping = aes(x = longitude, y = latitude), size = .5)+
+  geom_point(data = ap_tree_cover, mapping = aes(x = longitude, y = latitude), size = .5)+
   theme(axis.text.x=element_blank(), #remove x axis labels
         axis.ticks.x=element_blank(), #remove x axis ticks
         axis.text.y=element_blank(),  #remove y axis labels
@@ -572,16 +578,16 @@ taxa_cat_tps_native <- taxa_cat_single %>%
   dplyr::filter(europe == "native") %>% 
   dplyr::select(-c(terrestrial_pollen_sum,europe)) 
 taxa_cat_broad <- taxa_cat_tps_native %>% 
-  dplyr::filter(tap_needle_broad == "broad") %>% 
+  dplyr::filter(ap_needle_broad == "broad") %>% 
   dplyr::arrange(clean_taxon_name)
 taxa_cat_needle <- taxa_cat_tps_native %>% 
-  dplyr::filter(tap_needle_broad == "needle") %>% 
+  dplyr::filter(ap_needle_broad == "needle") %>% 
   dplyr::arrange(clean_taxon_name)
 taxa_cat_shrub <- taxa_cat_tps_native %>% 
-  dplyr::filter(tap_sap_nap == "SAP") %>% 
+  dplyr::filter(ap_sp_hp == "SP") %>% 
   dplyr::arrange(clean_taxon_name)
-taxa_cat_nap <- taxa_cat_tps_native %>% 
-  dplyr::filter(tap_sap_nap == "NAP") %>% 
+taxa_cat_hp <- taxa_cat_tps_native %>% 
+  dplyr::filter(ap_sp_hp == "HP") %>% 
   dplyr::arrange(clean_taxon_name)
 taxa_cat_table <- tibble("Tree/Shrub/Non-arboreal" = c("Tree","Tree",
                                                        "Shrub","Shrub",
@@ -591,8 +597,9 @@ taxa_cat_table <- tibble("Tree/Shrub/Non-arboreal" = c("Tree","Tree",
                                                  NA,NA),
                          "Taxa grouping" = c(toString(c(taxa_cat_broad$clean_taxon_name)),toString(c(taxa_cat_needle$clean_taxon_name)),
                                              toString(c(taxa_cat_shrub$clean_taxon_name)),NA,
-                                             toString(c(taxa_cat_nap$clean_taxon_name)),NA))
+                                             toString(c(taxa_cat_hp$clean_taxon_name)),NA))
 rio::export(taxa_cat_table,"figs/supplement/ST1.taxa_cat_table.xlsx")
+
 
 # Supplementary Table 2: Modern tree cover model coefficients: Lake sites
 results_model_lake <- summary(tree_beta_lake)
@@ -601,6 +608,11 @@ results_table_lake_precision <- dplyr::as_tibble(results_model_lake[["coefficien
 rio::export(list(results_table_lake_mean,results_table_lake_precision), "figs/supplement/ST2.model_results_lake_table.xlsx")
 
 
+# Supplementary Table 3: Modern tree cover model coefficients: Including higher elevation sites* (n.b. run tree beta without elevation filter)
+results_model <- summary(tree_beta)
+results_table_mean <- dplyr::as_tibble(results_model[["coefficients"]][["mean"]], rownames = "coefficients")
+results_table_precision <- dplyr::as_tibble(results_model[["coefficients"]][["precision"]], rownames = "coefficients")
+rio::export(list(results_table_mean,results_table_precision), "figs/supplement/ST2.model_results_table.xlsx")
 
 # Supplementary Figure 1: Model performance: 
 #                                           A – Non-adjusted predictions of tree cover compared to observed tree cover; 
@@ -794,7 +806,8 @@ ggsave("figs/supplement/SF4.mean_tree_cover_plots.png",height = 6, width = 16, u
 
 
 
-# Supplementary Table 3: Data by biogeographical region
+# Supplementary Table 4: Data by biogeographical region
+
 data_binned_bioregion <- bioregion_recon_tree_binned_200 %>% 
   dplyr::filter(bin_age <= 12000) %>% 
   dplyr::group_by(entity_name) %>% 

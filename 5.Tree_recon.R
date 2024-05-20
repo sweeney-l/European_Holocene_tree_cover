@@ -83,11 +83,13 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
-#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/       
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
-#       /Taxon-cleaner              : species classification (see supplement)       
+#       /SMPDS                      : updated information regarding SMPDS metadata (see SMPDSv2_updated_meta_info.csv)
+#       /SPECIAL-EPD                : SPECIAL.EPD data from https://researchdata.reading.ac.uk/1295/
+#       /ZANON
+#        /forest_cover              : Zanon et al. (2017) tree cover data from https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2018.00253/full
 #   /intermediate_output  
 #     /vegetation                   : saved intermediate data
 #       /copernicus                 : amalgamated maps based on tree cover data
@@ -117,11 +119,13 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
-# dir.create("data/input//SPECIAL-EPD")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
-# dir.create("data/input/Taxon-cleaner")
+# dir.create("data/input//SMPDS")
+# dir.create("data/input/SPECIAL-EPD")
+# dir.create("data/input/ZANON")
+# dir.create("data/input/ZANON/forest_cover")
 # dir.create("data/intermediate_output")
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
@@ -458,8 +462,8 @@ epd_shannon_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
 epd_tree_shannon_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
   x %>% 
     tidyr::pivot_longer(!c(ID_SAMPLE), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% #re-shape 
-      dplyr::left_join(dplyr::select(taxa_cat_single, clean_taxon_name, tap_sap_nap), by = "clean_taxon_name") %>%
-      dplyr::filter(tap_sap_nap == "TAP") %>%
+      dplyr::left_join(dplyr::select(taxa_cat_single, clean_taxon_name, ap_sp_hp), by = "clean_taxon_name") %>%
+      dplyr::filter(ap_sp_hp == "AP") %>%
       dplyr::select(ID_SAMPLE, clean_taxon_name, percentage_cover) %>%
       tidyr::pivot_wider(names_from = clean_taxon_name, values_from = percentage_cover) %>%
       dplyr::select(-ID_SAMPLE) %>%
@@ -482,52 +486,52 @@ epd_hillsN2_ls <- parallel::mclapply(epd_pollen_wider_ls, function(x){
 },mc.cores = 6)
 
 
-#TAP percentages
-epd_pollen_counts_TAPinfo_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
+#AP percentages
+epd_pollen_counts_APinfo_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
   x %>% 
     tidyr::pivot_longer(!c(ID_SAMPLE), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
     dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") 
 },mc.cores = 6)
 
-epd_pollen_tap_per_ls <- parallel::mclapply(epd_pollen_counts_TAPinfo_ls, function(x){
+epd_pollen_ap_per_ls <- parallel::mclapply(epd_pollen_counts_APinfo_ls, function(x){
   x %>% 
-    dplyr::filter(tap_sap_nap == "TAP") %>% #Just TAP
+    dplyr::filter(ap_sp_hp == "AP") %>% #Just AP
     dplyr::group_by(ID_SAMPLE) %>% 
-    dplyr::summarise(tap_cover = sum(percentage_cover)) %>% 
+    dplyr::summarise(ap_cover = sum(percentage_cover)) %>% 
     dplyr::ungroup()
 },mc.cores = 6)
 
 
 #Needleshare 
-epd_pollen_tap_needleshare_per_ls1 <- lapply(epd_pollen_counts_TAPinfo_ls,function(x){
+epd_pollen_ap_needleshare_per_ls1 <- lapply(epd_pollen_counts_APinfo_ls,function(x){
   x %>%
-    dplyr::filter(tap_sap_nap == "TAP") %>%
-    dplyr::mutate(needle = dplyr::if_else(is.na(tap_needle_broad), "unknown", tap_needle_broad)) %>%   #need to remove NA
+    dplyr::filter(ap_sp_hp == "AP") %>%
+    dplyr::mutate(needle = dplyr::if_else(is.na(ap_needle_broad), "unknown", ap_needle_broad)) %>%   #need to remove NA
     dplyr::filter(needle == "needle") %>%
     dplyr::group_by(ID_SAMPLE) %>%
-    dplyr::summarise(tap_cover_needle = sum(percentage_cover)) %>%
+    dplyr::summarise(ap_cover_needle = sum(percentage_cover)) %>%
     dplyr::ungroup()
 })
-epd_pollen_tap_needleshare_per_ls2 <- purrr::map2(epd_pollen_tap_needleshare_per_ls1, epd_pollen_tap_per_ls, dplyr::left_join)
-epd_pollen_tap_needleshare_per_ls3 <- lapply(epd_pollen_tap_needleshare_per_ls2, function(x){
+epd_pollen_ap_needleshare_per_ls2 <- purrr::map2(epd_pollen_ap_needleshare_per_ls1, epd_pollen_ap_per_ls, dplyr::left_join)
+epd_pollen_ap_needleshare_per_ls3 <- lapply(epd_pollen_ap_needleshare_per_ls2, function(x){
   x %>% 
-    dplyr::mutate(needle_share = tap_cover_needle/tap_cover)  %>%
+    dplyr::mutate(needle_share = ap_cover_needle/ap_cover)  %>%
     dplyr::mutate(needle_share = tidyr::replace_na(needle_share, 0))
 })
 
 
-#SAP cover
-epd_pollen_counts_SAPinfo_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
+#SP cover
+epd_pollen_counts_SPinfo_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
   x %>% 
     tidyr::pivot_longer(!c(ID_SAMPLE), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
     dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") 
 }, mc.cores = 6)
 
-epd_pollen_sap_per_ls <- parallel::mclapply(epd_pollen_counts_SAPinfo_ls, function(x){
+epd_pollen_sp_per_ls <- parallel::mclapply(epd_pollen_counts_SPinfo_ls, function(x){
   x %>% 
-    dplyr::filter(tap_sap_nap == "SAP") %>% #Just SAP
+    dplyr::filter(ap_sp_hp == "SP") %>% #Just SP
     dplyr::group_by(ID_SAMPLE) %>% 
-    dplyr::summarise(sap_cover = sum(percentage_cover)) %>% 
+    dplyr::summarise(sp_cover = sum(percentage_cover)) %>% 
     dplyr::ungroup()
 }, mc.cores = 6)
 
@@ -537,25 +541,25 @@ epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$median
 epd_shannon <- epd_shannon_ls$median
 epd_tree_shannon <- epd_tree_shannon_ls$median
 epd_hillsN2 <- epd_hillsN2_ls$median
-epd_pollen_tap_per <- epd_pollen_tap_per_ls$median
-epd_pollen_sap_per <- epd_pollen_sap_per_ls$median
-epd_pollen_tap_needleshare_per <- epd_pollen_tap_needleshare_per_ls3$median
+epd_pollen_ap_per <- epd_pollen_ap_per_ls$median
+epd_pollen_sp_per <- epd_pollen_sp_per_ls$median
+epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$median
 
 lq_epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$lq
 lq_epd_shannon <- epd_shannon_ls$lq
 lq_epd_tree_shannon <- epd_tree_shannon_ls$lq
 lq_epd_hillsN2 <- epd_hillsN2_ls$lq
-lq_epd_pollen_tap_per <- epd_pollen_tap_per_ls$lq
-lq_epd_pollen_sap_per <- epd_pollen_sap_per_ls$lq
-lq_epd_pollen_tap_needleshare_per <- epd_pollen_tap_needleshare_per_ls3$lq
+lq_epd_pollen_ap_per <- epd_pollen_ap_per_ls$lq
+lq_epd_pollen_sp_per <- epd_pollen_sp_per_ls$lq
+lq_epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$lq
 
 uq_epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$uq
 uq_epd_shannon <- epd_shannon_ls$uq
 uq_epd_tree_shannon <- epd_tree_shannon_ls$uq
 uq_epd_hillsN2 <- epd_hillsN2_ls$uq
-uq_epd_pollen_tap_per <- epd_pollen_tap_per_ls$uq
-uq_epd_pollen_sap_per <- epd_pollen_sap_per_ls$uq
-uq_epd_pollen_tap_needleshare_per <- epd_pollen_tap_needleshare_per_ls3$uq
+uq_epd_pollen_ap_per <- epd_pollen_ap_per_ls$uq
+uq_epd_pollen_sp_per <- epd_pollen_sp_per_ls$uq
+uq_epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$uq
 
 
 epd_downcore_input <- epd_pollen_counts_tps %>% 
@@ -564,11 +568,11 @@ epd_downcore_input <- epd_pollen_counts_tps %>%
   dplyr::left_join(epd_shannon, by = "ID_SAMPLE") %>%
   dplyr::left_join(epd_tree_shannon, by = "ID_SAMPLE") %>%
   dplyr::left_join(epd_hillsN2, by = "ID_SAMPLE") %>% 
-  dplyr::left_join(epd_pollen_tap_per, by = "ID_SAMPLE") %>% 
-  dplyr::mutate(tap_cover = tap_cover / 100) %>% 
-  dplyr::left_join(epd_pollen_sap_per, by = "ID_SAMPLE") %>% 
-  dplyr::mutate(sap_cover = sap_cover / 100) %>% 
-  dplyr::left_join(dplyr::select(epd_pollen_tap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  dplyr::left_join(epd_pollen_ap_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(ap_cover = ap_cover / 100) %>% 
+  dplyr::left_join(epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(sp_cover = sp_cover / 100) %>% 
+  dplyr::left_join(dplyr::select(epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
   dplyr::filter(HillsN2 >= 2) %>% #Hills filter
   dplyr::select(-HillsN2) %>% 
   dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
@@ -583,11 +587,11 @@ lq_epd_downcore_input <- lq_epd_pollen_counts_tps %>%
   dplyr::left_join(lq_epd_shannon, by = "ID_SAMPLE") %>%
   dplyr::left_join(lq_epd_tree_shannon, by = "ID_SAMPLE") %>%
   dplyr::left_join(lq_epd_hillsN2, by = "ID_SAMPLE") %>% 
-  dplyr::left_join(lq_epd_pollen_tap_per, by = "ID_SAMPLE") %>% 
-  dplyr::mutate(tap_cover = tap_cover / 100) %>% 
-  dplyr::left_join(lq_epd_pollen_sap_per, by = "ID_SAMPLE") %>% 
-  dplyr::mutate(sap_cover = sap_cover / 100) %>% 
-  dplyr::left_join(dplyr::select(lq_epd_pollen_tap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  dplyr::left_join(lq_epd_pollen_ap_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(ap_cover = ap_cover / 100) %>% 
+  dplyr::left_join(lq_epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(sp_cover = sp_cover / 100) %>% 
+  dplyr::left_join(dplyr::select(lq_epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
   dplyr::filter(HillsN2 >= 2) %>% #Hills filter
   dplyr::select(-HillsN2) %>% 
   dplyr::left_join(dplyr::select(lq_pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
@@ -602,11 +606,11 @@ uq_epd_downcore_input <- uq_epd_pollen_counts_tps %>%
   dplyr::left_join(uq_epd_shannon, by = "ID_SAMPLE") %>%
   dplyr::left_join(uq_epd_tree_shannon, by = "ID_SAMPLE") %>%
   dplyr::left_join(uq_epd_hillsN2, by = "ID_SAMPLE") %>% 
-  dplyr::left_join(uq_epd_pollen_tap_per, by = "ID_SAMPLE") %>% 
-  dplyr::mutate(tap_cover = tap_cover / 100) %>% 
-  dplyr::left_join(uq_epd_pollen_sap_per, by = "ID_SAMPLE") %>% 
-  dplyr::mutate(sap_cover = sap_cover / 100) %>% 
-  dplyr::left_join(dplyr::select(uq_epd_pollen_tap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  dplyr::left_join(uq_epd_pollen_ap_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(ap_cover = ap_cover / 100) %>% 
+  dplyr::left_join(uq_epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(sp_cover = sp_cover / 100) %>% 
+  dplyr::left_join(dplyr::select(uq_epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
   dplyr::filter(HillsN2 >= 2) %>% #Hills filter
   dplyr::select(-HillsN2) %>% 
   dplyr::left_join(dplyr::select(uq_pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
@@ -624,7 +628,7 @@ epd_downcore_input_records <- epd_downcore_input %>%
 
 pollen_records2 <- rio::import("data/intermediate_output/vegetation/pollen_records2.csv")
 pollen_records2_filt <- pollen_records2 %>% 
-  dplyr::filter(ID_ENTITY %in% c(tap_tree_cover$ID_ENTITY))
+  dplyr::filter(ID_ENTITY %in% c(ap_tree_cover$ID_ENTITY))
 
 epd_downcore_input_records_vect <- epd_downcore_input_records %>% 
   sf::st_as_sf(coords = c("longitude", "latitude"), agr = "constant",crs = 4258) %>% 
@@ -661,7 +665,7 @@ epd_downcore_input_ls <- list(rio::import("data/intermediate_output/vegetation/e
                               rio::import("data/intermediate_output/vegetation/uq_epd_downcore_input.csv"))
 names(epd_downcore_input_ls) <- c("median", "lq", "uq")
 pred_EPD_tree_ls <- lapply(epd_downcore_input_ls, function(x){
-  betareg::predict(tree_model, newdata = dplyr::select(x, tap_cover, elevation, needle_share, tree_shannon, site_model, sap_cover),type="response") #modelled
+  betareg::predict(tree_model, newdata = dplyr::select(x, ap_cover, elevation, needle_share, tree_shannon, site_model, sp_cover),type="response") #modelled
 })
 
 pred_EPD_tree_refit_ls <- lapply(pred_EPD_tree_ls, function(x){
@@ -771,7 +775,10 @@ bin_200_median_recon_tree <- rio::import("data/intermediate_output/vegetation/bi
 bin_200_max_recon_tree <- rio::import("data/intermediate_output/vegetation/bin_200_max_recon_tree.csv")
 bin_200_n_recon_tree <- rio::import("data/intermediate_output/vegetation/bin_200_n_recon_tree.csv")
 
-
+binned_200yr_reconstructions <- recon_tree_binned_200 %>% 
+  dplyr::rename(bin_centre = bin_age, number_samples = number) %>% 
+  dplyr::select(entity_name, longitude, latitude, bin_centre, number_samples, tree_cover)
+rio::export(binned_200yr_reconstructions, "figs/binned_200yr_reconstructions.csv")
 
 #Bootstraps medians
 nrecords <- length(unique(recon_tree_binned_200$entity_name)) #Number of records
@@ -1111,21 +1118,7 @@ recon_tree_rast_200_class_plotsetup <- lapply(recon_tree_rast_200_class, functio
     
 })
 
-# recon_tree_rast_200_class_plotsetup <- recon_tree_rast_200_class_plotsetup[c("0", "200", "400", "600", "800", #reorder the list to year
-#                                                                        "1000", "1200", "1400", "1600", "1800",
-#                                                                        "2000", "2200", "2400", "2600", "2800",
-#                                                                        "3000", "3200", "3400", "3600", "3800",
-#                                                                        "4000", "4200", "4400", "4600", "4800",
-#                                                                        "5000", "5200", "5400", "5600", "5800",
-#                                                                        "6000", "6200", "6400", "6600", "6800",
-#                                                                        "7000", "7200", "7400", "7600", "7800",
-#                                                                        "8000", "8200", "8400", "8600", "8800",
-#                                                                        "9000", "9200", "9400", "9600", "9800",
-#                                                                        "10000", "10200", "10400", "10600", "10800",
-#                                                                        "11000", "11200", "11400", "11600", "11800",
-#                                                                        "12000", "12200", "12400", "12600", "12800",
-#                                                                        "13000", "13200", "13400", "13600", "13800",
-#                                                                        "14000")]
+
 recon_tree_rast_200_class_plotsetup <- recon_tree_rast_200_class_plotsetup[c("12600","12400","12200","12000", #clip and reorder
                                                                              "11800","11600","11400","11200",
                                                                              "11000","10800","10600","10400",
@@ -1173,7 +1166,7 @@ recon_tree_rast_200_class_plot_regroup <- split(recon_tree_rast_200_class_plot, 
 recon_tree_rast_200_class_plot_regroup_im <- ls()
 recon_tree_rast_200_class_plot_regroup_im <- lapply(recon_tree_rast_200_class_plot_regroup, function(x){
   gridExtra::grid.arrange(grobs = x, ncol = 2) %>% 
-    ggsave(paste0("figs/tree_cover_rasters/recon_tree_rast_200_", names(x)[1], "to", tail(names(x), n=1), ".pdf"), .)
+    ggsave(paste0("figs/tree_cover_rasters/recon_tree_rast_200_", names(x)[1], "to", tail(names(x), n=1), ".pdf"),., height = 12, width = 16, unit = "cm")
 })
 
 
@@ -1413,11 +1406,6 @@ recon_tree_binned_serge_coords_buf <- recon_tree_binned_serge %>%
   sf::st_buffer(., 5000)
 
 serge_ls <- rio::import_list(Sys.glob("./data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1/*.csv"))
-# names(serge_ls) <- c("0-100", "100-350", "350-700", "700-1200","1200-1700",
-#                         "1700-2200","2200-2700","2700-3200","3200-3700","3700-4200",
-#                         "4200-4700","4700-5200","5200-5700","5700-6200","6200-6700",
-#                         "6700-7200","7200-7700","7700-8200","8200-8700","8700-9200",
-#                         "9200-9700","9700-10200","10200-10700","10700-11200","11200-11700")
 names(serge_ls) <- c("0-100", "3700-4200", "4200-4700","4700-5200","5200-5700","5700-6200",
                         "6200-6700","6700-7200","7200-7700","7700-8200","8200-8700","100-350",
                         "8700-9200","9200-9700","9700-10200","10200-10700","10700-11200",
@@ -1865,7 +1853,7 @@ first_bin_serge_extract_ID <- terra::cellFromXY(first_bin_serge_3035_80km, sf::s
   dplyr::mutate(ID_ENTITY = pollen_records_xy3$ID_ENTITY, .before = 1)
 
 #Modern comparison
-modern_comp <- tap_tree_cover %>% 
+modern_comp <- ap_tree_cover %>% 
   dplyr::filter(tree>0) %>% 
   dplyr::left_join(first_bin_zan_extract, by = "ID_ENTITY") %>% 
   dplyr::left_join(first_bin_zan_extract_ID, by = "ID_ENTITY") %>% 
