@@ -23,9 +23,9 @@
 # Script elements
 # ---------------------------------------------------------
 # 1. Packages, paths and data
-# 2. Set map extents
-# 3. Load and crop European base map 
-# 4. Generate masked modern tree cover map
+# 2. Load in data and quantile mapping adjustment model
+# 3. Import fossil pollen data and reshape
+# 4. Reconstructions
 
 # ---------------------------------------------------------
 
@@ -146,13 +146,16 @@ library(tidyverse)
 # 2. Load in data and quantile mapping adjustment model
 
 #Input files
-tree_model <- readRDS("data/intermediate_output/vegetation/tree_beta.rda") #modern tree cover model (4.Tree_model)
+ap_tree_cover <- rio::import("data/intermediate_output/vegetation/ap_tree_cover.csv")
+tree_model <- readRDS("data/intermediate_output/vegetation/tree_beta.rda") #modern tree cover model
+boot_tree_model <- readRDS("data/intermediate_output/vegetation/boot_tree_beta.rda")
 taxa_cat <- rio::import("data/input/taxa_cat.csv") %>% #import information regarding the taxa
   dplyr::arrange(taxon_name) 
 taxa_cat_single <- taxa_cat %>% #for single clean_taxon_name
   dplyr::select(-taxon_name) %>% 
   dplyr::distinct()
 loocv_predict <- rio::import( "data/intermediate_output/vegetation/loocv.csv")
+boot_predict <- readRDS( "data/intermediate_output/vegetation/boot_dataset_pred_df.rda")
 
 ##Set map extents (as 1.Map_setup)
 euro_extent_4258_ymin <- 34 
@@ -218,6 +221,48 @@ refitted_model_df$Percentage_difference <- factor(refitted_model_df$Percentage_d
                                                                                                       "20 to 60",
                                                                                                       "60 to 100"))
 rio::export(refitted_model_df, "data/intermediate_output/vegetation/refitted_model_df.csv")
+
+
+
+#Analyse relationships observed tree cover against AP values
+ap_tree_plot <- loocv_predict %>% 
+  dplyr::select(ID_ENTITY, tree, ap_cover, latitude, longitude) %>% 
+  dplyr::rename(observed = tree) %>% #rename variables
+  dplyr::mutate(difference = observed - ap_cover) %>% 
+  dplyr::mutate(difference = - difference) %>% # predictions minus observations
+  dplyr::mutate(observed100 = observed*100, ap100 = ap_cover*100) %>% #convert to precentage
+  dplyr::mutate(observed_group = ggplot2::cut_width(observed100, width = 10, center = 5)) %>% 
+  dplyr::arrange(observed_group)
+
+rio::export(ap_tree_plot, "data/intermediate_output/vegetation/ap_tree_plot.csv")
+
+ap_tree_plot_nonaobs <- dplyr::filter(ap_tree_plot, !is.na(observed)) #exclude records with  no observed cover
+round(cor(ap_tree_plot_nonaobs$observed, ap_tree_plot_nonaobs$ap_cover),3) #correlation between obersevations and predictions
+round(max(ap_tree_plot$ap_cover, na.rm = TRUE),2) #investigate maximum ap values
+round(max(ap_tree_plot$observed, na.rm = TRUE),2) #investigate maximum observed values
+
+
+#Bootstraps
+#Analyse relationships observed tree cover against LOOCV predictions 
+boot_fitted_tree_plot <- boot_predict %>% 
+  dplyr::mutate(E = tree - prediction) %>% 
+  dplyr::select(ID_ENTITY, tree, prediction, E, latitude, longitude, boot) %>% 
+  dplyr::rename(observed = tree, predicted = prediction, difference = E) %>% #rename variables
+  dplyr::mutate(difference = - difference) %>% #observation minus predictions
+  dplyr::mutate(observed100 = observed*100, predicted100 = predicted*100) %>% #convert to precentage
+  dplyr::mutate(observed_group = ggplot2::cut_width(observed100, width = 10, center = 5)) %>% 
+  dplyr::arrange(boot,observed_group)
+
+rio::export(boot_fitted_tree_plot, "data/intermediate_output/vegetation/boot_fitted_tree_plot.csv")
+boot_fitted_tree_plot_nonaobs <- dplyr::filter(boot_fitted_tree_plot, !is.na(observed)) #exclude records with  no observed cover
+boot_fitted_tree_plot_nonaobs_ls <- boot_fitted_tree_plot_nonaobs %>% 
+  dplyr::group_by(boot) %>% 
+  dplyr::group_split()
+
+#Empirical adjustment quantile mapping
+boot_tree_qmap_model_ssplin <- lapply(boot_fitted_tree_plot_nonaobs_ls, function(x){
+  qmap::fitQmapSSPLIN(x$observed, x$predicted, wet.day = TRUE, qstep = 0.001) #quantile fit using smoothing spline
+})
 
 
 
@@ -688,7 +733,7 @@ lq_recon_tree <- cbind(epd_downcore_input_ls$lq, pred_EPD_tree_refit_ls$lq)  %>%
   dplyr::left_join(dplyr::select(lq_pollen_sample_ages, ID_SAMPLE, entity_name, latitude, longitude, lowerq, site_type), by = "ID_SAMPLE")  %>% 
   dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) %>% 
   dplyr::filter(elevation < 1000) #Limit to records below 1000m
-rio::export(lq_recon_tree, "intermediate_output/vegetation/lq_recon_tree.csv")
+rio::export(lq_recon_tree, "data/intermediate_output/vegetation/lq_recon_tree.csv")
 
 uq_recon_tree <- cbind(epd_downcore_input_ls$uq, pred_EPD_tree_refit_ls$uq)  %>%
   dplyr::rename(tree_cover = dplyr::last_col()) %>%
@@ -697,11 +742,15 @@ uq_recon_tree <- cbind(epd_downcore_input_ls$uq, pred_EPD_tree_refit_ls$uq)  %>%
   dplyr::left_join(dplyr::select(uq_pollen_sample_ages, ID_SAMPLE, entity_name, latitude, longitude, upperq, site_type), by = "ID_SAMPLE")  %>% 
   dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) %>% 
   dplyr::filter(elevation < 1000) #Limit to records below 1000m
-rio::export(uq_recon_tree, "intermediate_output/vegetation/uq_recon_tree.csv")
+rio::export(uq_recon_tree, "data/intermediate_output/vegetation/uq_recon_tree.csv")
+
+ap_cover_tree <- recon_tree %>% 
+  dplyr::mutate(tree_cover = ap_cover*100) #convert to ap cover subsequent analysis
+rio::export(ap_cover_tree, "data/intermediate_output/vegetation/ap_cover_tree.csv")
 
 #Bin data into 200yrs bins
-recon_tree_ls <- list(recon_tree, lq_recon_tree, uq_recon_tree)
-names(recon_tree_ls) <- c("median", "lq", "uq")
+recon_tree_ls <- list(recon_tree, lq_recon_tree, uq_recon_tree, ap_cover_tree)
+names(recon_tree_ls) <- c("median", "lq", "uq", "ap")
 
 recon_tree_binned_200_ls <- lapply(recon_tree_ls, function(x){
   x %>% 
@@ -723,21 +772,21 @@ bin_200_mean_recon_tree_ls <- lapply(recon_tree_binned_200_ls, function(x){ #Cal
       dplyr::ungroup()
 }) 
 
-bin_200_median_recon_tree_ls <- lapply(recon_tree_binned_200_ls, function(x){ #Calculate mean through time
+bin_200_median_recon_tree_ls <- lapply(recon_tree_binned_200_ls, function(x){ #Calculate median through time
   x %>% 
     dplyr::group_by(bin_age) %>% 
     dplyr::summarise(tree_cover_median = median(tree_cover), tree_cover_lower = quantile(tree_cover,probs = c(0.25)),tree_cover_higher = quantile(tree_cover,probs = c(0.75))) %>% 
     dplyr::ungroup()
 }) 
 
-bin_200_max_recon_tree_ls <- lapply(recon_tree_binned_200_ls, function(x){ #Calculate mean through time
+bin_200_max_recon_tree_ls <- lapply(recon_tree_binned_200_ls, function(x){ #Calculate max through time
   x %>% 
     dplyr::group_by(bin_age) %>% 
     dplyr::summarise(tree_cover_max = max(tree_cover)) %>% 
     dplyr::ungroup()
 }) 
 
-bin_200_n_recon_tree_ls <- lapply(recon_tree_binned_200_ls, function(x){ #Calculate mean through time
+bin_200_n_recon_tree_ls <- lapply(recon_tree_binned_200_ls, function(x){ #Calculate number through time
   x %>% 
     dplyr::select(-tree_cover, -number) %>% 
     dplyr::distinct() %>% 
@@ -764,7 +813,11 @@ rio::export(bin_200_median_recon_tree_ls$uq, "data/intermediate_output/vegetatio
 rio::export(bin_200_max_recon_tree_ls$uq, "data/intermediate_output/vegetation/uq_bin_200_max_recon_tree.csv")
 rio::export(bin_200_n_recon_tree_ls$uq, "data/intermediate_output/vegetation/uq_bin_200_n_recon_tree.csv")
 
-
+rio::export(recon_tree_binned_200_ls$ap, "data/intermediate_output/vegetation/ap_tree_binned_200.csv")
+rio::export(bin_200_mean_recon_tree_ls$ap, "data/intermediate_output/vegetation/bin_200_mean_ap_tree.csv")
+rio::export(bin_200_median_recon_tree_ls$ap, "data/intermediate_output/vegetation/bin_200_median_ap_tree.csv")
+rio::export(bin_200_max_recon_tree_ls$ap, "data/intermediate_output/vegetation/bin_200_max_ap_tree.csv")
+rio::export(bin_200_n_recon_tree_ls$ap, "data/intermediate_output/vegetation/bin_200_n_ap_tree.csv")
 
 
 ##Reconstruction analysis
@@ -808,12 +861,12 @@ rio::export(bin_200_recon_tree_boots, "data/intermediate_output/vegetation/bin_2
 
 bin_200_recon_tree_boots_5_95 <- bin_200_recon_tree_boots %>% #Calculate 95% CIs
   dplyr::group_by(bin_age) %>% 
-  dplyr::summarise(tree_cover_lower_mean = quantile(tree_cover_mean,probs = c(0.05)),
-                   tree_cover_higher_mean = quantile(tree_cover_mean,probs = c(0.95)),
-                   tree_cover_lower_median = quantile(tree_cover_median,probs = c(0.05)),
-                   tree_cover_higher_median = quantile(tree_cover_median,probs = c(0.95)),
-                   tree_cover_lower_max = quantile(tree_cover_max,probs = c(0.05)),
-                   tree_cover_higher_max = quantile(tree_cover_max,probs = c(0.95)),
+  dplyr::summarise(tree_cover_lower_mean = quantile(tree_cover_mean,probs = c(0.025)),
+                   tree_cover_higher_mean = quantile(tree_cover_mean,probs = c(0.975)),
+                   tree_cover_lower_median = quantile(tree_cover_median,probs = c(0.025)),
+                   tree_cover_higher_median = quantile(tree_cover_median,probs = c(0.975)),
+                   tree_cover_lower_max = quantile(tree_cover_max,probs = c(0.025)),
+                   tree_cover_higher_max = quantile(tree_cover_max,probs = c(0.975)),
                    ) %>% 
   dplyr::ungroup()  %>% 
   tidyr::pivot_longer(!bin_age, names_to = "lower_upper", values_to = "tree_cover_5_95") %>%  
@@ -861,7 +914,7 @@ f_locfit_tree_average <- function(d){
   loc02 <- locfit::locfit(y ~ locfit::lp(x, deg=1, h=1000), maxk=800, family="qrgauss")
   pred02 <- predict(loc02, newdata=tree_loc$bin_age, se.fit=TRUE)
   loc03 <- locfit::locfit(y ~ locfit::lp(x, deg=1, h=2000), maxk=800, family="qrgauss")
-  pred03 <- predict(loc02, newdata=tree_loc$bin_age, se.fit=TRUE)
+  pred03 <- predict(loc03, newdata=tree_loc$bin_age, se.fit=TRUE)
   locfit <- data.frame(tree_loc$bin_age, tree_loc$tree_cover, pred01$fit, pred02$fit, pred03$fit)
   name_average <- stringr::str_extract(deparse(substitute(d)), "(?<=_)[^_]+(?=_[^_]*_[^_]*$)")
   colnames(locfit) <- c("bin_age", "None", "500-year", "1000-year", "2000-year")
@@ -1022,7 +1075,174 @@ epd_downcore_input_observedtree_5k_bioregion_median <- epd_downcore_input_observ
   dplyr::summarise(median_tree = median(mean, na.rm = TRUE))
   
 
+##AP values
+ap_tree_binned_200 <- rio::import("data/intermediate_output/vegetation/ap_tree_binned_200.csv")
+bin_200_mean_ap_tree <- rio::import("data/intermediate_output/vegetation/bin_200_mean_ap_tree.csv")
+bin_200_median_ap_tree <- rio::import("data/intermediate_output/vegetation/bin_200_median_ap_tree.csv")
+bin_200_max_ap_tree <- rio::import("data/intermediate_output/vegetation/bin_200_max_ap_tree.csv")
+bin_200_n_ap_tree <- rio::import("data/intermediate_output/vegetation/bin_200_n_ap_tree.csv")
 
+
+binned_200yr_ap <- ap_tree_binned_200 %>% 
+  dplyr::rename(bin_centre = bin_age, number_samples = number) %>% 
+  dplyr::select(entity_name, longitude, latitude, bin_centre, number_samples, tree_cover)
+rio::export(binned_200yr_ap, "figs/binned_200yr_ap.csv")
+
+#Bootstraps medians
+nrecords <- length(unique(ap_tree_binned_200$entity_name)) #Number of records
+ap_tree_binned_200_records <- ap_tree_binned_200 %>% #Add row number of each entity
+  dplyr::select(entity_name) %>% 
+  dplyr::distinct() %>% 
+  dplyr::mutate(entity_row = dplyr::row_number())
+ap_tree_binned_200_num <- ap_tree_binned_200 %>% 
+  dplyr::left_join(ap_tree_binned_200_records, by = "entity_name")
+
+boot_ls <- list()
+set.seed(42)
+nreps <- 1000 #number of reps
+for (i in 1:nreps){ #generate list of boostrapped resampled dfs
+  print(i)
+  record_boot <- sample(seq(1:nrecords), nrecords, replace = TRUE) #select records, with replacement
+  bin_200_ap_tree_boot <- dplyr::tibble(entity_row = record_boot) %>% 
+    dplyr::left_join(ap_tree_binned_200_num, by = "entity_row", relationship = "many-to-many") %>% #add info by entity
+    dplyr::group_by(bin_age) %>% 
+    dplyr::summarise(tree_cover_mean = mean(tree_cover), tree_cover_median = median(tree_cover),tree_cover_max = max(tree_cover) ) %>% #calculate bin mean, median and max
+    dplyr::ungroup() 
+  boot_ls[[i]] <- bin_200_ap_tree_boot #add to list
+  
+}
+bin_200_ap_tree_boots <- dplyr::bind_rows(boot_ls, .id = "column_label") #reduce to single df
+rio::export(bin_200_ap_tree_boots, "data/intermediate_output/vegetation/bin_200_ap_tree_boots.csv")
+
+bin_200_ap_tree_boots_5_95 <- bin_200_ap_tree_boots %>% #Calculate 95% CIs
+  dplyr::group_by(bin_age) %>% 
+  dplyr::summarise(tree_cover_lower_mean = quantile(tree_cover_mean,probs = c(0.025)),
+                   tree_cover_higher_mean = quantile(tree_cover_mean,probs = c(0.975)),
+                   tree_cover_lower_median = quantile(tree_cover_median,probs = c(0.025)),
+                   tree_cover_higher_median = quantile(tree_cover_median,probs = c(0.975)),
+                   tree_cover_lower_max = quantile(tree_cover_max,probs = c(0.025)),
+                   tree_cover_higher_max = quantile(tree_cover_max,probs = c(0.975))) %>% 
+  dplyr::ungroup()  %>% 
+  tidyr::pivot_longer(!bin_age, names_to = "lower_upper", values_to = "tree_cover_5_95") %>%  
+  dplyr::mutate(column_label = dplyr::if_else(stringr::str_detect(lower_upper, "tree_cover_lower"), nreps+2, nreps+3)) #need to add for plotting
+rio::export(bin_200_ap_tree_boots_5_95, "data/intermediate_output/vegetation/bin_200_ap_tree_boots_5_95.csv")
+
+bin_200_mean_ap_tree_plot <- bin_200_mean_ap_tree %>% 
+  dplyr::mutate(column_label = nreps+1)
+rio::export(bin_200_mean_ap_tree_plot, "data/intermediate_output/vegetation/bin_200_mean_ap_tree_plot.csv")
+
+bin_200_median_ap_tree_plot <- bin_200_median_ap_tree %>% 
+  dplyr::mutate(column_label = nreps+1) #need to include within plot
+rio::export(bin_200_median_ap_tree_plot, "data/intermediate_output/vegetation/bin_200_median_ap_tree_plot.csv")
+
+bin_200_max_ap_tree_plot <- bin_200_max_ap_tree %>% 
+  dplyr::mutate(column_label = nreps+1)
+rio::export(bin_200_max_ap_tree_plot, "data/intermediate_output/vegetation/bin_200_max_ap_tree_plot.csv")
+
+bin_200_ap_tree_boots_5_95_mean <- bin_200_ap_tree_boots_5_95 %>% 
+  dplyr::filter(stringr::str_detect(lower_upper, "mean"))
+rio::export(bin_200_ap_tree_boots_5_95_mean, "data/intermediate_output/vegetation/bin_200_ap_tree_boots_5_95_mean.csv")
+
+bin_200_ap_tree_boots_5_95_median <- bin_200_ap_tree_boots_5_95 %>% 
+  dplyr::filter(stringr::str_detect(lower_upper, "median"))
+rio::export(bin_200_ap_tree_boots_5_95_median, "data/intermediate_output/vegetation/bin_200_ap_tree_boots_5_95_median.csv")
+
+bin_200_ap_tree_boots_5_95_max <- bin_200_ap_tree_boots_5_95 %>% 
+  dplyr::filter(stringr::str_detect(lower_upper, "max"))
+rio::export(bin_200_ap_tree_boots_5_95_max, "data/intermediate_output/vegetation/bin_200_ap_tree_boots_5_95_max.csv")
+
+
+
+#Locfit smoothing of tree cover through time
+f_locfit_tree_average(bin_200_median_ap_tree)
+rio::export(bin_200_median_ap_tree_loc, "data/intermediate_output/vegetation/bin_200_median_ap_tree_loc.csv")
+
+
+
+##Model bootstraps for prediction interval
+## Modelled fit
+epd_downcore_input <- rio::import( "data/intermediate_output/vegetation/epd_downcore_input.csv")
+
+boot_pred_EPD_tree_ls <- lapply(boot_tree_model, function(x){ #fit reconstruction tree cover values based on bootstrapped models
+  as.numeric(betareg::predict(x, newdata = dplyr::select(epd_downcore_input, ap_cover, elevation, needle_share, tree_shannon, site_model, sp_cover),type="response")) #modelled
+})
+boot_res_EPD_tree_ls <- lapply(boot_tree_model, function(x){ #fit reconstruction tree cover values based on bootstrapped models
+ set.seed(42)
+  as.numeric(sample(x$residuals, nrow(epd_downcore_input), replace = TRUE))
+})
+
+boot_predres_EPD_tree_ls <- purrr::map2(boot_pred_EPD_tree_ls, boot_res_EPD_tree_ls, `+`)
+
+boot_pred_EPD_tree_refit_ls <- purrr::map2(boot_predres_EPD_tree_ls, boot_tree_qmap_model_ssplin, qmap::doQmapSSPLIN) #Apply respective quantile adjustment to reconstructions
+
+boot_recon_tree_ls <- lapply(boot_pred_EPD_tree_refit_ls, function(x){ #add input data
+  cbind(epd_downcore_input, x)  %>% 
+    dplyr::filter(elevation < 1000) %>%  #Limit to records below 1000m
+    dplyr::rename(tree_cover = dplyr::last_col()) %>%
+    dplyr::mutate(tree_cover = dplyr::if_else(tree_cover>1, 1, tree_cover)) %>% #Because otherwise we may have re-fitted values greater than 100%
+    dplyr::mutate(tree_cover = 100*tree_cover) %>%
+    dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, entity_name, latitude, longitude, median, site_type), by = "ID_SAMPLE")  %>%
+    dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) 
+  
+})
+boot_recon_tree <- dplyr::bind_rows(boot_recon_tree_ls, .id = "boot")  #reduce to single df
+saveRDS(boot_recon_tree, "data/intermediate_output/vegetation/boot_recon_tree.rda")
+
+#Bin data into 200yrs bins
+boot_recon_tree <- readRDS("data/intermediate_output/vegetation/boot_recon_tree.rda")
+boot_recon_tree_binned_200 <- boot_recon_tree %>%  #bin data by age, entity and boot
+  dplyr::rename(date_value = median) %>% 
+  dplyr::mutate(bin = ggplot2::cut_width(date_value, width = 200, center = 0, labels = F)) %>%    #place in 200 year bins
+  dplyr::mutate(bin_age = (bin * 200) - 200) %>%
+  dplyr::filter(bin_age <=14000)  %>% 
+  dplyr::group_by(entity_name, bin_age, boot) %>% 
+  dplyr::summarise(tree_cover = mean(tree_cover)) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(dplyr::select(pollen_sample_ages, entity_name, latitude, longitude), by = "entity_name", multiple = "first") %>% 
+  dplyr::distinct()
+
+boot_bin_200_median_recon_tree <- boot_recon_tree_binned_200 %>% 
+  dplyr::group_by(boot, bin_age) %>% 
+  dplyr::summarise(median_tree_cover = median(tree_cover)) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::rename(column_label = boot)
+saveRDS(boot_bin_200_median_recon_tree, "data/intermediate_output/vegetation/boot_bin_200_median_recon_tree.rda")
+
+boot_bin_200_median_recon_tree_5_95 <- boot_bin_200_median_recon_tree %>% #Calculate 95% CIs
+  dplyr::group_by(bin_age) %>% 
+  dplyr::summarise(tree_cover_lower_median = quantile(median_tree_cover,probs = c(0.025)),
+                   tree_cover_higher_median = quantile(median_tree_cover,probs = c(0.975))) %>% 
+  dplyr::ungroup()  %>% 
+  tidyr::pivot_longer(!bin_age, names_to = "lower_upper", values_to = "tree_cover_5_95") %>%  
+  dplyr::mutate(column_label = dplyr::if_else(stringr::str_detect(lower_upper, "tree_cover_lower"), 1002, 1003)) #need to add for plotting
+rio::export(boot_bin_200_median_recon_tree_5_95, "data/intermediate_output/vegetation/boot_bin_200_median_recon_tree_5_95.csv")
+
+boot_recon_tree_SE <- boot_recon_tree %>% #calculate SE based on bootstraps
+  dplyr::group_by(ID_SAMPLE) %>%
+  dplyr::summarise(mean_tree_cover = mean(tree_cover, na.rm = TRUE),
+                   sd_tree_cover = sd(tree_cover, na.rm = TRUE),
+                   n = n()) %>%
+  dplyr::mutate(se_tree_cover = sd_tree_cover / sqrt(n)) %>%
+  dplyr::ungroup()
+
+boot_recon_tree_SE_binned_200 <- boot_recon_tree_SE %>% #SE
+  dplyr::left_join(dplyr::select(boot_recon_tree, ID_SAMPLE:site_model,entity_name:site_type),  by = "ID_SAMPLE", multiple = "first") %>% 
+  dplyr::distinct() %>% 
+  dplyr::rename(date_value = median) %>% 
+  dplyr::mutate(bin = ggplot2::cut_width(date_value, width = 200, center = 0, labels = F)) %>%    #place in 200 year bins
+  dplyr::mutate(bin_age = (bin * 200) - 200) %>%
+  dplyr::filter(bin_age <=14000)  %>% 
+  dplyr::group_by(entity_name, bin_age) %>% 
+  dplyr::summarise(se_tree_cover = mean(se_tree_cover)) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(dplyr::select(pollen_sample_ages, entity_name, latitude, longitude), by = "entity_name", multiple = "first") %>% 
+  dplyr::distinct()
+
+saveRDS(boot_recon_tree_SE_binned_200, "data/intermediate_output/vegetation/boot_recon_tree_SE_binned_200.rda")
+
+
+
+########################
 ###Rasters
 ##Non-adjusted
 #200 year bins
@@ -1159,6 +1379,9 @@ recon_tree_rast_200_class_plot <- lapply(seq_along(recon_tree_rast_200_class_plo
     theme(plot.title = element_text(size=9))
 })
 names(recon_tree_rast_200_class_plot) <- names(recon_tree_rast_200_class_plotsetup)
+saveRDS(recon_tree_rast_200_class_plot, "data/intermediate_output/vegetation/raster_tree/recon_tree_rast_200_class_plot.rda")
+
+
 recon_tree_rast_200_class_plot$`12000`
 
 recon_tree_rast_200_class_plot_regroup <- ls()

@@ -146,6 +146,7 @@ library(tidyverse)
 pollen <- rio::import("data/intermediate_output/vegetation/SMPDS/SMPDS_am2_per.csv") #all of the pollen data
 pollen_records <- rio::import("data/intermediate_output/vegetation/pollen_records_meta.xlsx") #meta info about records
 pollen_single_per <- rio::import("data/intermediate_output/vegetation/pollen_single_per.csv")
+pollen_buffer_variable <- rio::import("data/intermediate_output/vegetation/pollen_buffer_variable.xlsx")
 veg_shannon3 <- rio::import("data/intermediate_output/vegetation/veg_shannon3.csv")
 tree_shannon3 <- rio::import("data/intermediate_output/vegetation/tree_shannon3.csv")
 pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info.csv")
@@ -226,6 +227,12 @@ ap_tree_cover <- pollen_extracted_info %>%
 
 rio::export(ap_tree_cover, "data/intermediate_output/vegetation/ap_tree_cover.csv")
 
+variable_buff_utilsed <- ap_tree_cover %>% 
+  dplyr::left_join(dplyr::select(pollen_buffer_variable, ID_ENTITY, i0.75), by = "ID_ENTITY")
+max(variable_buff_utilsed$i0.75)
+min(variable_buff_utilsed$i0.75)
+median(variable_buff_utilsed$i0.75)
+
 #Lake only
 ap_tree_cover_lake <- pollen_extracted_info %>% 
   dplyr::select(ID_ENTITY, mean, prop_na, taxa_names[1]:last(taxa_names)) %>%
@@ -273,8 +280,27 @@ tree_beta_poly <- betareg::betareg(tree~ap_cover*elevation+poly(needle_share,2)+
 tree_beta_no_interaction <- betareg::betareg(tree~ap_cover+poly(needle_share,2)+poly(tree_shannon,2)+site_model+sp_cover+elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #model with no interaction effects
 tree_beta_lake <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation|needle_share+tree_shannon,data = dplyr::filter(ap_tree_cover_lake, tree > 0)) #final normal with just lake sites
 
+tree_beta_no_ap_cover <- betareg::betareg(tree~needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no ap
+tree_beta_no_sp_cover <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no sp
+tree_beta_no_elevation <- betareg::betareg(tree~ap_cover+needle_share+I(needle_share^2)+tree_shannon+I(tree_shannon^2)+site_model+sp_cover|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no elevation
+tree_beta_no_needle_share <- betareg::betareg(tree~ap_cover*elevation+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no needle share
+tree_beta_no_tree_shannon <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+site_model*elevation+sp_cover*elevation|needle_share+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no tree shannon
+tree_beta_no_site_model <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation|needle_share+tree_shannon, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no site model
+tree_beta_only_ap_sp <- betareg::betareg(tree~ap_cover+sp_cover, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal
+
+
 saveRDS(tree_beta, file = "data/intermediate_output/vegetation/tree_beta.rda") #store model
+saveRDS(tree_beta_stat, file = "data/intermediate_output/vegetation/tree_beta_stat.rda") #store model without precision variables
+saveRDS(tree_beta_poly, file = "data/intermediate_output/vegetation/tree_beta_poly.rda") #store model with polnomial fit
+saveRDS(tree_beta_no_interaction, file = "data/intermediate_output/vegetation/tree_beta_no_interaction.rda") #store model with no interaction efefcts
 saveRDS(tree_beta_lake, file = "data/intermediate_output/vegetation/tree_beta_lake.rda") #store lake model
+saveRDS(tree_beta_no_ap_cover, file = "data/intermediate_output/vegetation/tree_beta_no_ap_cover.rda") #store model without ap
+saveRDS(tree_beta_no_sp_cover, file = "data/intermediate_output/vegetation/tree_beta_no_sp_cover.rda") #store model without sp
+saveRDS(tree_beta_no_elevation, file = "data/intermediate_output/vegetation/tree_beta_no_elevation.rda") #store model without elevation
+saveRDS(tree_beta_no_needle_share, file = "data/intermediate_output/vegetation/tree_beta_no_needle_share.rda") #store model without needle share
+saveRDS(tree_beta_no_tree_shannon, file = "data/intermediate_output/vegetation/tree_beta_no_tree_shannon.rda") #store model without tree shannon
+saveRDS(tree_beta_no_site_model, file = "data/intermediate_output/vegetation/tree_beta_no_site_model.rda") #store model without site type
+saveRDS(tree_beta_only_ap_sp, file = "data/intermediate_output/vegetation/tree_beta_only_ap_sp.rda") #store model with only AP and SP
 
 
 #Model diagnostics
@@ -283,14 +309,41 @@ summary(tree_beta_stat)
 summary(tree_beta_poly)
 summary(tree_beta_no_interaction)
 summary(tree_beta_lake)
+summary(tree_beta_no_ap_cover)
+summary(tree_beta_no_sp_cover)
+summary(tree_beta_no_elevation)
+summary(tree_beta_no_needle_share)
+summary(tree_beta_no_tree_shannon)
+summary(tree_beta_no_site_model)
+summary(tree_beta_only_ap_sp)
+
+AIC(tree_beta)
+AIC(tree_beta_stat)
+AIC(tree_beta_poly)
+AIC(tree_beta_no_interaction)
+AIC(tree_beta_lake)
+AIC(tree_beta_no_ap_cover)
+AIC(tree_beta_no_sp_cover)
+AIC(tree_beta_no_elevation)
+AIC(tree_beta_no_needle_share)
+AIC(tree_beta_no_tree_shannon)
+AIC(tree_beta_no_site_model)
+AIC(tree_beta_only_ap_sp)
 
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta, ~1))[1] - logLik(tree_beta)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_stat, ~1))[1] - logLik(tree_beta_stat)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_poly, ~1))[1] - logLik(tree_beta_poly)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_interaction, ~1))[1] - logLik(tree_beta_no_interaction)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover_lake, tree >= 0))) * (logLik(update(tree_beta_lake, ~1))[1] - logLik(tree_beta_lake)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_ap_cover, ~1))[1] - logLik(tree_beta_no_ap_cover)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_sp_cover, ~1))[1] - logLik(tree_beta_no_sp_cover)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_elevation, ~1))[1] - logLik(tree_beta_no_elevation)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_needle_share, ~1))[1] - logLik(tree_beta_no_needle_share)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_tree_shannon, ~1))[1] - logLik(tree_beta_no_tree_shannon)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_site_model, ~1))[1] - logLik(tree_beta_no_site_model)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_only_ap_sp, ~1))[1] - logLik(tree_beta_only_ap_sp)[1])) #Cox_snell R2
 
-AIC(tree_beta)
+
 lmtest::lrtest(tree_beta)
 lmtest::lrtest(tree_beta_stat,tree_beta) #LR test for variable precision
 
@@ -316,7 +369,27 @@ plot(tree_beta, which = 1:4, type = "sweighted2")
 plot(tree_beta, which = 5, type = "deviance", sub.caption = "")
 plot(tree_beta, which = 1, type = "deviance", sub.caption = "")
 
+#Model bootstraps and predictions
+n_boots <- 1000 #Number of resamples
+boot_ap_tree_cover <- list()
+for (i in seq_len(n_boots)){ #resample mode training data
+  boot_ap_tree_cover[[i]]<-ap_tree_cover[sample(seq_len(nrow(ap_tree_cover)), nrow(ap_tree_cover), replace=TRUE), ]
+}
 
+boot_tree_beta <- parallel::mclapply(boot_ap_tree_cover, function(x){ #reun betareg regressions on bootstraps
+  tree_beta <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(x, tree > 0)) #final normal
+}, mc.cores = 6)
+saveRDS(boot_tree_beta, file = "data/intermediate_output/vegetation/boot_tree_beta.rda") #store bootstrapped models for downcore predictions
+
+boot_dataset_pred <- lapply(boot_tree_beta, function(x){ #generate predictions based on model bootstraps and orginal data
+  betareg::predict(x, ap_tree_cover_nona, type = "response") 
+})
+
+boot_dataset_pred_df <- dplyr::bind_rows(boot_dataset_pred, .id = "boot") %>%   #reshape data
+  tidyr::pivot_longer(-boot, names_to = "ID", values_to = "prediction") %>% 
+  dplyr::mutate(ID = as.numeric(ID)) %>% 
+  dplyr::left_join(ap_tree_cover_nona, by = "ID")
+saveRDS(boot_dataset_pred_df, file = "data/intermediate_output/vegetation/boot_dataset_pred_df.rda") #store bootstrapped predictions
 
 
 # ---------------------------------------------------------
@@ -343,7 +416,7 @@ dataset_pred_df <- dplyr::bind_rows(dataset_pred_ls) %>%
 
 dataset_pred_test <- ap_tree_cover_nona %>% #Calculate error
   dplyr::mutate(prediction = dataset_pred_df$`1`) %>% 
-  dplyr::mutate(E = tree - prediction) %>%
+  dplyr::mutate(E = tree - prediction) %>% #observation minus prediction
   dplyr::mutate(SE = E^2) 
 
 dataset_MAE <- mean(abs(dataset_pred_test$E))
@@ -371,14 +444,12 @@ dataset_pred_lake_df <- dplyr::bind_rows(dataset_pred_lake_ls) %>%
 
 dataset_pred_lake_test <- ap_tree_cover_lake_nona %>% #Calculate error
   dplyr::mutate(prediction = dataset_pred_lake_df$`1`) %>% 
-  dplyr::mutate(E = tree - prediction) %>%
+  dplyr::mutate(E = tree - prediction) %>% #observation minus prediction
   dplyr::mutate(SE = E^2) 
 
 dataset_lake_MAE <- mean(abs(dataset_pred_lake_test$E))
 dataset_lake_MSE <- mean(dataset_pred_lake_test$SE)
 dataset_lake_RMSE <- sqrt(dataset_lake_MSE)
 dataset_lake_r2 <- cor(dataset_pred_lake_test$tree, dataset_pred_lake_test$prediction)^2
-
-
 
 

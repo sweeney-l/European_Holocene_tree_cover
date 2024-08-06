@@ -232,7 +232,7 @@ f_buffer(pollen_buffer_calc,0.75,pollen_buffer_calc$basin_size) #this is the med
 pollen_buffer_variable <- pollen_buffer_0.75 %>% #Merge information for each FSP
   dplyr::mutate(basin_radius = (basin_size/pi)^(1/2), .before = i0.75) #km, add basin radius
 
-
+rio::export(pollen_buffer_variable, "data/intermediate_output/vegetation/pollen_buffer_variable.xlsx")
 
 # ---------------------------------------------------------
 
