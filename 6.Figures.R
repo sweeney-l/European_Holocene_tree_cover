@@ -41,6 +41,7 @@
 # install.packages("exactextractr")
 # install.packages("ggplotify")
 # install.packages("ggpubr")
+# install.packages("ggthemes")
 # install.packages("grDevices")
 # install.packages("gridExtra")
 # install.packages("lmtest")
@@ -507,7 +508,8 @@ ggplot2::ggplot(data = dplyr::filter(comp_all_median_loc, half_width == "None" &
   theme_bw()+
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
-  scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10), legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))+
   scale_x_reverse(breaks = seq(12000, 0, -2000))
@@ -535,7 +537,8 @@ plot_comp_all_median_loc_atlantic <- ggplot2::ggplot(data = dplyr::filter(comp_a
   theme_bw()+
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
-  scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10), legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))+
   scale_x_reverse(breaks = seq(12000, 0, -2000))
@@ -554,7 +557,8 @@ plot_comp_all_median_loc_boreal <- ggplot2::ggplot(data = dplyr::filter(comp_all
   theme_bw()+
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
-  scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10), legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))+
   scale_x_reverse(breaks = seq(12000, 0, -2000))
@@ -573,7 +577,8 @@ plot_comp_all_median_loc_continental <- ggplot2::ggplot(data = dplyr::filter(com
   theme_bw()+
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
-  scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10), legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))+
   scale_x_reverse(breaks = seq(12000, 0, -2000))
@@ -592,7 +597,8 @@ plot_comp_all_median_loc_mediterranean <- ggplot2::ggplot(data = dplyr::filter(c
   theme_bw()+
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
-  scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10), legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))+
   scale_x_reverse(breaks = seq(12000, 0, -2000))
@@ -664,6 +670,13 @@ results_model <- summary(tree_beta)
 results_table_mean <- dplyr::as_tibble(results_model[["coefficients"]][["mean"]], rownames = "coefficients")
 results_table_precision <- dplyr::as_tibble(results_model[["coefficients"]][["precision"]], rownames = "coefficients")
 rio::export(list(results_table_mean,results_table_precision), "figs/supplement/ST4.model_results_table.xlsx")
+
+# Supplementary Table 4: Modern tree cover model coefficients: Stricter 500m limit* (n.b. run tree beta with 500m elevation filter)
+results_model <- summary(tree_beta)
+results_table_mean <- dplyr::as_tibble(results_model[["coefficients"]][["mean"]], rownames = "coefficients")
+results_table_precision <- dplyr::as_tibble(results_model[["coefficients"]][["precision"]], rownames = "coefficients")
+rio::export(list(results_table_mean,results_table_precision), "figs/supplement/ST5.model_results_table.xlsx")
+
 
 # Supplementary Figure 1: Model performance: 
 #                                           A – Non-adjusted predictions of tree cover compared to observed tree cover; 
@@ -740,6 +753,7 @@ ggplot(data = euro_map_3035)+
   theme(panel.background = element_rect(fill = "aliceblue"))+
   geom_tile(refitted_model_df, mapping = aes(x = x, y = y, fill = Percentage_difference))+
   labs(fill="Percentage difference")+
+  ggthemes::scale_fill_colorblind()+
   theme(axis.title.y=element_blank(),  
         axis.title.x=element_blank())+
   # theme(legend.position = c(.15,.85))+
@@ -931,7 +945,8 @@ ggplot2::ggplot(data = dplyr::filter(bin_200_median_recon_tree_plot, bin_age <= 
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
   scale_x_reverse(breaks = seq(12000, 0, -2000))+
-  scale_color_discrete(name = "Bin type", labels = c("200-years", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Bin type", labels = c("200-years", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Bin type", labels = c("200-years", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10),legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))
 ggsave("figs/supplement/SF7.otherreconbin_median.png",height = 6, width = 10, unit = "cm")
@@ -954,7 +969,8 @@ ggplot2::ggplot(data = dplyr::filter(bin_200_median_recon_tree_plot, bin_age <= 
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
   scale_x_reverse(breaks = seq(12000, 0, -2000))+
-  scale_color_discrete(name = "Age model values", labels = c("Median", "Lower quartile", "Upper quartile"))+
+  ggthemes::scale_color_colorblind(name = "Age model values", labels = c("Median", "Lower quartile", "Upper quartile"))+
+  # scale_color_discrete(name = "Age model values", labels = c("Median", "Lower quartile", "Upper quartile"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10),legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))
 ggsave("figs/supplement/SF8.intqage_median.png",height = 6, width = 10, unit = "cm")
@@ -970,7 +986,8 @@ ggplot2::ggplot(data = dplyr::filter(comp_all_cell_median_loc, half_width == "No
   theme_bw()+
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
-  scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10), legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))+
   scale_x_reverse(limits = c(12000, 0), breaks = seq(12000, 0, -2000))
@@ -987,7 +1004,8 @@ ggplot2::ggplot(data = dplyr::filter(comp_all_bioregiongr4_median_EU_loc, half_w
   theme_bw()+
   ylab("Median tree cover (%)")+
   xlab("Bin age (cal. BP)")+
-  scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  ggthemes::scale_color_colorblind(name = "Source", labels = c("This study", "Serge", "Zanon"))+
+  # scale_color_discrete(name = "Source", labels = c("This study", "Serge", "Zanon"))+
   theme(axis.text=element_text(size=10, ),axis.title=element_text(size=10), legend.title=element_text(size=9), legend.text=element_text(size=8))+
   theme(text = element_text(family = "Times New Roman"))+
   scale_x_reverse(breaks = seq(12000, 0, -2000))

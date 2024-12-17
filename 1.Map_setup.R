@@ -42,6 +42,7 @@
 # install.packages("exactextractr")
 # install.packages("ggplotify")
 # install.packages("ggpubr")
+# install.packages("ggthemes")
 # install.packages("grDevices")
 # install.packages("gridExtra")
 # install.packages("lmtest")

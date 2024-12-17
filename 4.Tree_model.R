@@ -41,6 +41,7 @@
 # install.packages("exactextractr")
 # install.packages("ggplotify")
 # install.packages("ggpubr")
+# install.packages("ggthemes")
 # install.packages("grDevices")
 # install.packages("gridExtra")
 # install.packages("lmtest")
@@ -219,6 +220,7 @@ ap_tree_cover <- pollen_extracted_info %>%
   dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
   dplyr::filter(!(basin_size > 0.5 & site_type %in% c("terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh"))) %>% #filter bogs larger than 0.5 (400m radius as per Githumbi)
   dplyr::filter(elevation <1000) %>% #add elevation filter
+  dplyr::filter(elevation <500) %>% #add elevation filter
   dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
   dplyr::left_join(tree_shannon3, by = "ID_ENTITY") %>%  #add info about species diversity in pollen record (TPS only)
   dplyr::left_join(sp_cover, by = "ID_ENTITY") %>% 
