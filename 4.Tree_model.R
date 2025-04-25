@@ -24,6 +24,7 @@
 # 2. Import and set up data
 # 3. Run model and analysis 
 # 4. LOOCV
+# 5. AP Shannon index analysis
 
 # ---------------------------------------------------------
 
@@ -82,6 +83,7 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
+#       /Hengl                      : potential natural vegetation map from https://zenodo.org/records/10513520 
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
@@ -96,6 +98,7 @@ library(tidyverse)
 #         /3035                     : crs 3035 shapefile
 #         /4258                     : crs 4258 shapefile
 #         /4326                     : crs 4326 shapefile
+#       /hengl                      : european pnv, crs 3035
 #       /SMPDS                      : adjusted modern pollen data
 #       /raster_tree                : adjusted modern pollen data
 # /figs                             : figures/tables outputted from the analysis
@@ -118,6 +121,7 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
+# dir.create("data/input/Hengl")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
@@ -129,6 +133,7 @@ library(tidyverse)
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
 # dir.create("data/intermediate_output/vegetation/euro_map")
+# dir.create("data/intermediate_output/vegetation/hengl")
 # dir.create("data/intermediate_output/vegetation/SMPDS")
 # dir.create("data/intermediate_output/vegetation/raster_tree")
 # dir.create("figs")
@@ -151,6 +156,15 @@ pollen_buffer_variable <- rio::import("data/intermediate_output/vegetation/polle
 veg_shannon3 <- rio::import("data/intermediate_output/vegetation/veg_shannon3.csv")
 tree_shannon3 <- rio::import("data/intermediate_output/vegetation/tree_shannon3.csv")
 pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info.csv")
+# pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_crop0.85.csv") #different crop forest map limits (be careful!)
+# pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_crop0.65.csv") #different crop forest map limits
+# pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_crop0.25.csv") #different crop forest map limits
+# pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_crop0.35.csv") #different crop forest map limits
+# pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_crop0.35.csv") #different crop forest map limits
+# pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_50pol.csv") #different pollen percentage radius
+# pollen_extracted_info <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_35pol.csv") #different pollen percentage radius
+pollen_extracted_info_not_crop <- rio::import("data/intermediate_output/vegetation/pollen_extracted_info_not_crop.csv") #no crop restriction on forest map
+europe_biomes_3035 <- terra::rast("data/intermediate_output/vegetation/hengl/europe_biomes_3035.tif")
 
 taxa_names <- pollen %>% #taxa names for pollen records selected
   dplyr::select(Abies: ncol(.)) %>% 
@@ -201,7 +215,7 @@ ap_tree_cover <- pollen_extracted_info %>%
   dplyr::rename(tree = 2, prop_na = 3) %>% 
   tidyr::drop_na() %>%     
   tidyr::pivot_longer(!c(ID_ENTITY, tree, prop_na), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
-  dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") %>%
+  dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") %>% 
   dplyr::filter(terrestrial_pollen_sum == "yes") %>% #select only those taxa within TPS
   dplyr::mutate(europe = dplyr::if_else(is.na(europe), "none", europe)) %>%
   dplyr::filter(europe != "not native to Europe") %>% #take out non-natives
@@ -211,16 +225,18 @@ ap_tree_cover <- pollen_extracted_info %>%
   dplyr::filter(site_type %in% c("lake", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh")) %>% #Limit analysis to Lakes and bog(ish)
   dplyr::filter(!entity_type %in% c("litter", "soil sample","pollen trap", "moss polster or moss")) %>%
   dplyr::group_by(ID_ENTITY) %>% 
-  dplyr::summarise(tree = max(tree), prop_na = max(prop_na), ap_cover = sum(percentage_cover), needle = sum(percentage_cover[needle == "needle"])) %>% #calculate % cover
+  dplyr::summarise(tree = max(tree), prop_na = max(prop_na), ap_cover = sum(percentage_cover), needle = sum(percentage_cover[needle == "needle"]), wind = sum(percentage_cover[pollination == "wind"]), pinus = sum(percentage_cover[clean_taxon_name %in% c("Pinus","Pinus (diploxylon)","Pinus (haploxylon)")])) %>% #calculate % cover
   dplyr::ungroup() %>% 
   dplyr::mutate(difference = ap_cover - tree) %>%
-  dplyr::mutate(tree = tree/100, ap_cover = ap_cover/100, needle = needle/100) %>% 
+  dplyr::mutate(tree = tree/100, ap_cover = ap_cover/100, needle = needle/100, wind = wind/100) %>% 
   dplyr::mutate(needle_share = needle/ap_cover) %>% #share of total AP that is needleleaf
+  dplyr::mutate(wind_share = wind/ap_cover) %>% 
+  dplyr::mutate(pinus_share = pinus/ap_cover) %>% 
   dplyr::left_join(dplyr::select(pollen_extracted_info, ID_ENTITY, X3035, Y3035, elevation, latitude,longitude, basin_size), by = "ID_ENTITY") %>% #add coordinate info
   dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
   dplyr::filter(!(basin_size > 0.5 & site_type %in% c("terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh"))) %>% #filter bogs larger than 0.5 (400m radius as per Githumbi)
   dplyr::filter(elevation <1000) %>% #add elevation filter
-  dplyr::filter(elevation <500) %>% #add elevation filter
+  # dplyr::filter(elevation <500) %>% #add elevation filter
   dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
   dplyr::left_join(tree_shannon3, by = "ID_ENTITY") %>%  #add info about species diversity in pollen record (TPS only)
   dplyr::left_join(sp_cover, by = "ID_ENTITY") %>% 
@@ -266,10 +282,65 @@ ap_tree_cover_lake <- pollen_extracted_info %>%
   dplyr::filter(ap_cover > 0) %>%         #because needleleaf share will be NaN for single record
   dplyr::filter(prop_na < 0.5)      #limit associated with no of NA in extracted tree cover
 
+#Crop cover not excluded from tree cover map
+sp_cover_not_crop <- pollen_extracted_info_not_crop %>% #SP cover
+  dplyr::select(ID_ENTITY, mean, prop_na, taxa_names[1]:last(taxa_names)) %>%
+  dplyr::rename(tree = 2, prop_na = 3) %>%
+  tidyr::drop_na() %>% 
+  tidyr::pivot_longer(!c(ID_ENTITY, tree, prop_na), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
+  dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") %>% 
+  dplyr::filter(terrestrial_pollen_sum == "yes") %>% #select only those taxa within TPS
+  dplyr::filter(ap_sp_hp == "SP") %>%      #just SP for % calculation
+  dplyr::group_by(ID_ENTITY) %>% 
+  dplyr::summarise(sp_cover = sum(percentage_cover)) %>% #calculate % cover
+  dplyr::ungroup() %>% 
+  dplyr::mutate(sp_cover = sp_cover/100) 
+
+rio::export(sp_cover_not_crop, "data/intermediate_output/vegetation/sp_cover_not_crop.csv")
+
+ap_tree_cover_not_crop <- pollen_extracted_info_not_crop %>% 
+  dplyr::select(ID_ENTITY, mean, prop_na, taxa_names[1]:last(taxa_names)) %>%
+  dplyr::rename(tree = 2, prop_na = 3) %>% 
+  tidyr::drop_na() %>%     
+  tidyr::pivot_longer(!c(ID_ENTITY, tree, prop_na), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
+  dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") %>%
+  dplyr::filter(terrestrial_pollen_sum == "yes") %>% #select only those taxa within TPS
+  dplyr::mutate(europe = dplyr::if_else(is.na(europe), "none", europe)) %>%
+  dplyr::filter(europe != "not native to Europe") %>% #take out non-natives
+  dplyr::filter(ap_sp_hp == "AP") %>%    #just AP for total AP% calculation
+  dplyr::mutate(needle = dplyr::if_else(is.na(ap_needle_broad), "unknown", ap_needle_broad)) %>%   #need to remove NA
+  dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
+  dplyr::filter(site_type %in% c("lake", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh")) %>% #Limit analysis to Lakes and bog(ish)
+  dplyr::filter(!entity_type %in% c("litter", "soil sample","pollen trap", "moss polster or moss")) %>%
+  dplyr::group_by(ID_ENTITY) %>% 
+  dplyr::summarise(tree = max(tree), prop_na = max(prop_na), ap_cover = sum(percentage_cover), needle = sum(percentage_cover[needle == "needle"])) %>% #calculate % cover
+  dplyr::ungroup() %>% 
+  dplyr::mutate(difference = ap_cover - tree) %>%
+  dplyr::mutate(tree = tree/100, ap_cover = ap_cover/100, needle = needle/100) %>% 
+  dplyr::mutate(needle_share = needle/ap_cover) %>% #share of total AP that is needleleaf
+  dplyr::left_join(dplyr::select(pollen_extracted_info_not_crop, ID_ENTITY, X3035, Y3035, elevation, latitude,longitude, basin_size,crop), by = "ID_ENTITY") %>% #add coordinate and crop info
+  dplyr::left_join(dplyr::select(pollen_records, ID_ENTITY, site_type, entity_type), by = "ID_ENTITY") %>% #add site meta info
+  dplyr::filter(!(basin_size > 0.5 & site_type %in% c("terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, marsh"))) %>% #filter bogs larger than 0.5 (400m radius as per Githumbi)
+  dplyr::filter(elevation <1000) %>% #add elevation filter
+  # dplyr::filter(elevation <500) %>% #add elevation filter
+  dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
+  dplyr::left_join(tree_shannon3, by = "ID_ENTITY") %>%  #add info about species diversity in pollen record (TPS only)
+  dplyr::left_join(sp_cover_not_crop, by = "ID_ENTITY") %>% 
+  dplyr::filter(ap_cover > 0) %>%            #because needleleaf share will be NaN for single record
+  dplyr::filter(prop_na < 0.5)      #limit associated with no of NA in extracted tree cover
+
+rio::export(ap_tree_cover_not_crop, "data/intermediate_output/vegetation/ap_tree_cover_not_crop.csv")
+
+variable_buff_utilsed_not_crop <- ap_tree_cover_not_crop %>% 
+  dplyr::left_join(dplyr::select(pollen_buffer_variable, ID_ENTITY, i0.75), by = "ID_ENTITY")
+max(variable_buff_utilsed$i0.75)
+min(variable_buff_utilsed$i0.75)
+median(variable_buff_utilsed$i0.75)
+
 # ---------------------------------------------------------
 
 
-# 3. Run model and analysis
+# 3. Run models and analysis
 # ---------------------------------------------------------
 # ---------------------------------------------------------
 summary(ap_tree_cover$tree)
@@ -281,6 +352,9 @@ tree_beta_stat <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle
 tree_beta_poly <- betareg::betareg(tree~ap_cover*elevation+poly(needle_share,2)+poly(tree_shannon,2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal poly
 tree_beta_no_interaction <- betareg::betareg(tree~ap_cover+poly(needle_share,2)+poly(tree_shannon,2)+site_model+sp_cover+elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #model with no interaction effects
 tree_beta_lake <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation|needle_share+tree_shannon,data = dplyr::filter(ap_tree_cover_lake, tree > 0)) #final normal with just lake sites
+tree_beta_not_crop <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover_not_crop, tree > 0)) #final normal without crop exclusion
+tree_beta_wind <- betareg::betareg(tree~ap_cover*elevation+wind_share+I(wind_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|wind_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal
+tree_beta_pinus <- betareg::betareg(tree~ap_cover*elevation+pinus_share+I(pinus_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|pinus_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal
 
 tree_beta_no_ap_cover <- betareg::betareg(tree~needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no ap
 tree_beta_no_sp_cover <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation|needle_share+tree_shannon+site_model, data = dplyr::filter(ap_tree_cover, tree > 0)) #final normal no sp
@@ -296,6 +370,9 @@ saveRDS(tree_beta_stat, file = "data/intermediate_output/vegetation/tree_beta_st
 saveRDS(tree_beta_poly, file = "data/intermediate_output/vegetation/tree_beta_poly.rda") #store model with polnomial fit
 saveRDS(tree_beta_no_interaction, file = "data/intermediate_output/vegetation/tree_beta_no_interaction.rda") #store model with no interaction efefcts
 saveRDS(tree_beta_lake, file = "data/intermediate_output/vegetation/tree_beta_lake.rda") #store lake model
+saveRDS(tree_beta_not_crop, file = "data/intermediate_output/vegetation/tree_beta_not_crop.rda") #store model with no crop exclusion in forest map
+saveRDS(tree_beta_wind, file = "data/intermediate_output/vegetation/tree_beta_wind.rda") #store model with wind% rather than needleleaf
+saveRDS(tree_beta_pinus, file = "data/intermediate_output/vegetation/tree_beta_pinus.rda") #store model with pinus% rather than needleleaf
 saveRDS(tree_beta_no_ap_cover, file = "data/intermediate_output/vegetation/tree_beta_no_ap_cover.rda") #store model without ap
 saveRDS(tree_beta_no_sp_cover, file = "data/intermediate_output/vegetation/tree_beta_no_sp_cover.rda") #store model without sp
 saveRDS(tree_beta_no_elevation, file = "data/intermediate_output/vegetation/tree_beta_no_elevation.rda") #store model without elevation
@@ -303,6 +380,8 @@ saveRDS(tree_beta_no_needle_share, file = "data/intermediate_output/vegetation/t
 saveRDS(tree_beta_no_tree_shannon, file = "data/intermediate_output/vegetation/tree_beta_no_tree_shannon.rda") #store model without tree shannon
 saveRDS(tree_beta_no_site_model, file = "data/intermediate_output/vegetation/tree_beta_no_site_model.rda") #store model without site type
 saveRDS(tree_beta_only_ap_sp, file = "data/intermediate_output/vegetation/tree_beta_only_ap_sp.rda") #store model with only AP and SP
+# saveRDS(tree_beta, file = "data/intermediate_output/vegetation/tree_beta_50pol.rda") #store model when running with the 50% source pollen area
+# saveRDS(tree_beta, file = "data/intermediate_output/vegetation/tree_beta_35pol.rda") #store model when running with the 35% source pollen area
 
 
 #Model diagnostics
@@ -311,6 +390,10 @@ summary(tree_beta_stat)
 summary(tree_beta_poly)
 summary(tree_beta_no_interaction)
 summary(tree_beta_lake)
+summary(tree_beta_not_crop)
+summary(tree_beta_not_crop_plus)
+summary(tree_beta_wind)
+summary(tree_beta_pinus)
 summary(tree_beta_no_ap_cover)
 summary(tree_beta_no_sp_cover)
 summary(tree_beta_no_elevation)
@@ -324,6 +407,10 @@ AIC(tree_beta_stat)
 AIC(tree_beta_poly)
 AIC(tree_beta_no_interaction)
 AIC(tree_beta_lake)
+AIC(tree_beta_not_crop)
+AIC(tree_beta_not_crop_plus)
+AIC(tree_beta_wind)
+AIC(tree_beta_pinus)
 AIC(tree_beta_no_ap_cover)
 AIC(tree_beta_no_sp_cover)
 AIC(tree_beta_no_elevation)
@@ -337,6 +424,10 @@ AIC(tree_beta_only_ap_sp)
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_poly, ~1))[1] - logLik(tree_beta_poly)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_interaction, ~1))[1] - logLik(tree_beta_no_interaction)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover_lake, tree >= 0))) * (logLik(update(tree_beta_lake, ~1))[1] - logLik(tree_beta_lake)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover_not_crop, tree >= 0))) * (logLik(update(tree_beta_not_crop, ~1))[1] - logLik(tree_beta_not_crop)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover_not_crop, tree >= 0))) * (logLik(update(tree_beta_not_crop_plus, ~1))[1] - logLik(tree_beta_not_crop_plus)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_wind, ~1))[1] - logLik(tree_beta_wind)[1])) #Cox_snell R2
+1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_pinus, ~1))[1] - logLik(tree_beta_pinus)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_ap_cover, ~1))[1] - logLik(tree_beta_no_ap_cover)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_sp_cover, ~1))[1] - logLik(tree_beta_no_sp_cover)[1])) #Cox_snell R2
 1 - exp((2/nrow(dplyr::filter(ap_tree_cover, tree >= 0))) * (logLik(update(tree_beta_no_elevation, ~1))[1] - logLik(tree_beta_no_elevation)[1])) #Cox_snell R2
@@ -394,6 +485,22 @@ boot_dataset_pred_df <- dplyr::bind_rows(boot_dataset_pred, .id = "boot") %>%   
 saveRDS(boot_dataset_pred_df, file = "data/intermediate_output/vegetation/boot_dataset_pred_df.rda") #store bootstrapped predictions
 
 
+
+boot_tree_beta_no_tree_shannon <- parallel::mclapply(boot_ap_tree_cover, function(x){ #reun betareg regressions on bootstraps, with no shannon index
+  tree_beta <- betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+site_model*elevation+sp_cover*elevation|needle_share+site_model, data = dplyr::filter(x, tree > 0)) #final normal no shannon
+}, mc.cores = 6)
+saveRDS(boot_tree_beta_no_tree_shannon, file = "data/intermediate_output/vegetation/boot_tree_beta_no_tree_shannon.rda") #store bootstrapped models for downcore predictions, no shannon
+
+boot_dataset_pred_no_tree_shannon <- lapply(boot_tree_beta_no_tree_shannon, function(x){ #generate predictions based on model bootstraps and orginal data
+  betareg::predict(x, ap_tree_cover_nona, type = "response") 
+})
+
+boot_dataset_pred_df_no_tree_shannon <- dplyr::bind_rows(boot_dataset_pred_no_tree_shannon, .id = "boot") %>%   #reshape data
+  tidyr::pivot_longer(-boot, names_to = "ID", values_to = "prediction") %>% 
+  dplyr::mutate(ID = as.numeric(ID)) %>% 
+  dplyr::left_join(ap_tree_cover_nona, by = "ID")
+saveRDS(boot_dataset_pred_df_no_tree_shannon, file = "data/intermediate_output/vegetation/boot_dataset_pred_df_no_tree_shannon.rda") #store bootstrapped predictions
+
 # ---------------------------------------------------------
 
 
@@ -411,6 +518,19 @@ dataset_train_ls <- lapply(unique(ap_tree_cover_nona$ID), function(x){
 })
 dataset_train_mod_ls <- parallel::mclapply(dataset_train_ls, function(x){
   betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|tree_shannon+site_model+needle_share, data = x,link = "logit") #Model choice
+  # betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation, data = x,link = "logit") #without variable precision
+  # betareg::betareg(tree~ap_cover*elevation+poly(needle_share,2)+poly(tree_shannon,2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = x,link = "logit") #final normal poly
+  # betareg::betareg(tree~ap_cover+poly(needle_share,2)+poly(tree_shannon,2)+site_model+sp_cover+elevation|needle_share+tree_shannon+site_model, data = x,link = "logit") #model with no interaction effects
+  # betareg::betareg(tree~ap_cover*elevation+wind_share+I(wind_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|wind_share+tree_shannon+site_model, data = x,link = "logit") #final normal with wind instead of needleshare
+  # betareg::betareg(tree~ap_cover*elevation+pinus_share+I(pinus_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|pinus_share+tree_shannon+site_model, data = x,link = "logit") #final normal with pinus instead of needleshare
+  # betareg::betareg(tree~needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|needle_share+tree_shannon+site_model, data = x,link = "logit") #final normal no ap
+  # betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation|needle_share+tree_shannon+site_model, data = x,link = "logit") #final normal no sp
+  # betareg::betareg(tree~ap_cover+needle_share+I(needle_share^2)+tree_shannon+I(tree_shannon^2)+site_model+sp_cover|needle_share+tree_shannon+site_model, data = x,link = "logit") #final normal no elevation
+  # betareg::betareg(tree~ap_cover*elevation+tree_shannon*elevation+I(tree_shannon^2)*elevation+site_model*elevation+sp_cover*elevation|tree_shannon+site_model, data = x,link = "logit") #final normal no needle share
+  # betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+site_model*elevation+sp_cover*elevation|needle_share+site_model, data = x,link = "logit") #final normal no tree shannon
+  # betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation|needle_share+tree_shannon, data = x,link = "logit") #final normal no site model
+  # betareg::betareg(tree~ap_cover+sp_cover, data = dplyr::filter(ap_tree_cover, tree > 0)) #final just ap and sp
+  
 }, mc.cores = 8)
 dataset_pred_ls <- purrr::map2(dataset_train_mod_ls,dataset_test_ls, betareg::predict, type = "response")
 dataset_pred_df <- dplyr::bind_rows(dataset_pred_ls) %>% 
@@ -454,4 +574,144 @@ dataset_lake_MSE <- mean(dataset_pred_lake_test$SE)
 dataset_lake_RMSE <- sqrt(dataset_lake_MSE)
 dataset_lake_r2 <- cor(dataset_pred_lake_test$tree, dataset_pred_lake_test$prediction)^2
 
+
+ap_tree_cover_not_crop_nona <- ap_tree_cover_not_crop %>% 
+  dplyr::filter(tree > 0) %>% 
+  dplyr::mutate(ID = dplyr::row_number()) 
+dataset_test_not_crop_ls <- split(ap_tree_cover_not_crop_nona,1:nrow(ap_tree_cover_not_crop_nona))
+
+dataset_train_not_crop_ls <- lapply(unique(ap_tree_cover_not_crop_nona$ID), function(x){
+  dplyr::filter(ap_tree_cover_not_crop_nona, ID != x)
+})
+dataset_train_mod_not_crop_ls <- parallel::mclapply(dataset_train_not_crop_ls, function(x){
+  betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation|tree_shannon+needle_share, data = x,link = "logit") #Model choice
+}, mc.cores = 8)
+dataset_pred_not_crop_ls <- purrr::map2(dataset_train_mod_not_crop_ls,dataset_test_not_crop_ls, betareg::predict, type = "response")
+dataset_pred_not_crop_df <- dplyr::bind_rows(dataset_pred_not_crop_ls) %>% 
+  dplyr::mutate(ID = dplyr::row_number())
+
+dataset_pred_not_crop_test <- ap_tree_cover_not_crop_nona %>% #Calculate error
+  dplyr::mutate(prediction = dataset_pred_not_crop_df$`1`) %>% 
+  dplyr::mutate(E = tree - prediction) %>% #observation minus prediction
+  dplyr::mutate(SE = E^2) 
+
+dataset_not_crop_MAE <- mean(abs(dataset_pred_not_crop_test$E))
+dataset_not_crop_MSE <- mean(dataset_pred_not_crop_test$SE)
+dataset_not_crop_RMSE <- sqrt(dataset_not_crop_MSE)
+dataset_not_crop_r2 <- cor(dataset_pred_not_crop_test$tree, dataset_pred_not_crop_test$prediction)^2
+
+
+ap_tree_cover_not_crop_plus_nona <- ap_tree_cover_not_crop %>% 
+  dplyr::filter(tree > 0) %>% 
+  dplyr::mutate(ID = dplyr::row_number()) 
+dataset_test_not_crop_plus_ls <- split(ap_tree_cover_not_crop_plus_nona,1:nrow(ap_tree_cover_not_crop_plus_nona))
+
+dataset_train_not_crop_plus_ls <- lapply(unique(ap_tree_cover_not_crop_plus_nona$ID), function(x){
+  dplyr::filter(ap_tree_cover_not_crop_plus_nona, ID != x)
+})
+dataset_train_mod_not_crop_plus_ls <- parallel::mclapply(dataset_train_not_crop_plus_ls, function(x){
+  betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+tree_shannon*elevation+I(tree_shannon^2)*elevation+sp_cover*elevation+crop|tree_shannon+needle_share, data = x,link = "logit") #Model choice
+}, mc.cores = 8)
+dataset_pred_not_crop_plus_ls <- purrr::map2(dataset_train_mod_not_crop_plus_ls,dataset_test_not_crop_plus_ls, betareg::predict, type = "response")
+dataset_pred_not_crop_plus_df <- dplyr::bind_rows(dataset_pred_not_crop_plus_ls) %>% 
+  dplyr::mutate(ID = dplyr::row_number())
+
+dataset_pred_not_crop_plus_test <- ap_tree_cover_not_crop_plus_nona %>% #Calculate error
+  dplyr::mutate(prediction = dataset_pred_not_crop_plus_df$`1`) %>% 
+  dplyr::mutate(E = tree - prediction) %>% #observation minus prediction
+  dplyr::mutate(SE = E^2) 
+
+dataset_not_crop_plus_MAE <- mean(abs(dataset_pred_not_crop_plus_test$E))
+dataset_not_crop_plus_MSE <- mean(dataset_pred_not_crop_plus_test$SE)
+dataset_not_crop_plus_RMSE <- sqrt(dataset_not_crop_plus_MSE)
+dataset_not_crop_plus_r2 <- cor(dataset_pred_not_crop_plus_test$tree, dataset_pred_not_crop_plus_test$prediction)^2
+
+
+
+dataset_train_mod_no_tree_shannon_ls <- parallel::mclapply(dataset_train_ls, function(x){
+  betareg::betareg(tree~ap_cover*elevation+needle_share+I(needle_share^2)+site_model*elevation+sp_cover*elevation|site_model+needle_share, data = x,link = "logit") #Model choice
+}, mc.cores = 8)
+dataset_pred_no_tree_shannon_ls <- purrr::map2(dataset_train_mod_no_tree_shannon_ls,dataset_test_ls, betareg::predict, type = "response")
+dataset_pred_no_tree_shannon_df <- dplyr::bind_rows(dataset_pred_no_tree_shannon_ls) %>% 
+  dplyr::mutate(ID = dplyr::row_number())
+
+dataset_pred_no_tree_shannon_test <- ap_tree_cover_nona %>% #Calculate error
+  dplyr::mutate(prediction = dataset_pred_no_tree_shannon_df$`1`) %>% 
+  dplyr::mutate(E = tree - prediction) %>% #observation minus prediction
+  dplyr::mutate(SE = E^2) 
+
+dataset_no_tree_shannon_MAE <- mean(abs(dataset_pred_no_tree_shannon_test$E))
+dataset_no_tree_shannon_MSE <- mean(dataset_pred_no_tree_shannon_test$SE)
+dataset_no_tree_shannon_RMSE <- sqrt(dataset_no_tree_shannon_MSE)
+dataset_no_tree_shannon_r2 <- cor(dataset_pred_no_tree_shannon_test$tree, dataset_pred_no_tree_shannon_test$prediction)^2
+
+rio::export(dataset_pred_no_tree_shannon_test, "data/intermediate_output/vegetation/loocv_no_tree_shannon.csv")
+
+# ---------------------------------------------------------
+
+
+
+# 5. AP Shannon index analysis
+# ---------------------------------------------------------
+# ---------------------------------------------------------
+ap_tree_cover_sf <- rio::import("data/intermediate_output/vegetation/ap_tree_cover.csv") %>% 
+  sf::st_as_sf(coords = c("X3035", "Y3035"), agr = "constant",crs = 3035) %>%
+  sf::st_buffer(., 5000) #5000m buffer
+  
+hengl_biomes_training <- exactextractr::exact_extract(europe_biomes_3035, ap_tree_cover_sf, "mode", force_df = TRUE)  
+hengl_biomes_training_shannon <-  hengl_biomes_training %>% 
+  dplyr::as_tibble() %>% 
+  dplyr::mutate(entity_name = ap_tree_cover$ID_ENTITY) %>% 
+  dplyr::mutate(latitude = ap_tree_cover$latitude) %>% 
+  dplyr::mutate(longitude = ap_tree_cover$longitude) %>% 
+  dplyr::mutate(tree_shannon = ap_tree_cover$tree_shannon) %>%
+  dplyr::mutate(ap_cover = ap_tree_cover$ap_cover) %>% 
+  dplyr::mutate(tree = ap_tree_cover$tree) %>% 
+  dplyr::rename(biome = mode) %>% 
+  dplyr::mutate(biome = dplyr::if_else(is.na(biome), 15, biome)) #two records in large lake
+
+biome_names <- tibble(biome = sort(unique(hengl_biomes_training_shannon$biome)), #Order is important!
+                      biome_name = c("warm.temperate.evergreen.and.mixed.forest", #4
+                                     "cool.evergreen.needleleaf.forest", #8
+                                     "cool.mixed.forest", #9
+                                     "temperate.deciduous.broadleaf.forest", #13
+                                     # "cold.deciduous.forest", #14
+                                     "cold.evergreen.needleleaf.forest", #15
+                                     # "temperate.sclerophyll.woodland.and.shrubland", #16
+                                     # "temperate.evergreen.needleleaf.open.woodland", #17
+                                     "xerophytic.woods.scrub", #20
+                                     "steppe", #22
+                                     # "desert", #27
+                                     # "graminoid.and.forb.tundra", #28
+                                     "erect.dwarf.shrub.tundra", #30
+                                     "low.and.high.shrub.tundra"))#31
+
+biome_names_grouped <- biome_names %>% #put some groups together
+  dplyr::mutate(biome_group_name = biome_name) %>% 
+  dplyr::mutate(biome_group_name = dplyr::if_else(biome_group_name == "cold.evergreen.needleleaf.forest", "cool.evergreen.needleleaf.forest", biome_group_name)) %>% 
+  dplyr::mutate(biome_group_name = dplyr::if_else(biome_group_name == "low.and.high.shrub.tundra", "tundra", biome_group_name)) %>% 
+  dplyr::mutate(biome_group_name = dplyr::if_else(biome_group_name == "graminoid.and.forb.tundra", "tundra", biome_group_name)) %>%
+  dplyr::mutate(biome_group_name = dplyr::if_else(biome_group_name == "erect.dwarf.shrub.tundra", "tundra", biome_group_name)) %>%
+  dplyr::mutate(biome_group_name = dplyr::if_else(biome_group_name == "steppe", "xerophytic.scrub.and.woodlands", biome_group_name)) %>%
+  dplyr::mutate(biome_group_name = dplyr::if_else(biome_group_name == "xerophytic.woods.scrub", "xerophytic.scrub.and.woodlands", biome_group_name)) %>%
+  dplyr::mutate(biome_group_name = dplyr::if_else(biome_group_name == "temperate.evergreen.needleleaf.open.woodland", "xerophytic.scrub.and.woodlands", biome_group_name))
+
+hengl_biomes_training_shannon_gr <- hengl_biomes_training_shannon %>% #n.b. rows represent samples
+  dplyr::left_join(biome_names_grouped, by = "biome") 
+
+hengl_biomes_training_shannon_gr_summary <- hengl_biomes_training_shannon_gr %>% 
+  dplyr::group_by(biome_name) %>% 
+  dplyr::summarise(count = n())
+
+hengl_biomes_training_shannon_gr_summary1 <- hengl_biomes_training_shannon_gr %>% 
+  dplyr::group_by(biome_group_name) %>% 
+  dplyr::summarise(count = n())
+
+rio::export(hengl_biomes_training_shannon_gr_summary1, "data/intermediate_output/vegetation/hengl_biomes_training_shannon_gr_summary1.csv")
+
+hengl_biomes_training_shannon_gr_long <- hengl_biomes_training_shannon_gr %>% 
+  dplyr::select(biome_group_name, tree, ap_cover) %>% 
+  tidyr::pivot_longer(cols = c(tree, ap_cover), names_to = "Variable", values_to = "Percentage")
+
+rio::export(hengl_biomes_training_shannon_gr_long, "data/intermediate_output/vegetation/hengl_biomes_training_shannon_gr_long.csv")
 

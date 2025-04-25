@@ -82,6 +82,7 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
+#       /Hengl                      : potential natural vegetation map from https://zenodo.org/records/10513520 
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
@@ -96,6 +97,7 @@ library(tidyverse)
 #         /3035                     : crs 3035 shapefile
 #         /4258                     : crs 4258 shapefile
 #         /4326                     : crs 4326 shapefile
+#       /hengl                      : european pnv, crs 3035
 #       /SMPDS                      : adjusted modern pollen data
 #       /raster_tree                : adjusted modern pollen data
 # /figs                             : figures/tables outputted from the analysis
@@ -118,6 +120,7 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
+# dir.create("data/input/Hengl")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
@@ -129,6 +132,7 @@ library(tidyverse)
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
 # dir.create("data/intermediate_output/vegetation/euro_map")
+# dir.create("data/intermediate_output/vegetation/hengl")
 # dir.create("data/intermediate_output/vegetation/SMPDS")
 # dir.create("data/intermediate_output/vegetation/raster_tree")
 # dir.create("figs")

@@ -23,8 +23,9 @@
 # ---------------------------------------------------------
 # 1. Packages, paths and data
 # 2. Set map extents
-# 3. Load and crop European base map 
+# 3. Load and crop European base map and Hengl pnv map 
 # 4. Generate masked modern tree cover map
+
 
 # ---------------------------------------------------------
 
@@ -83,6 +84,7 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
+#       /Hengl                      : potential natural vegetation map from https://zenodo.org/records/10513520 
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
@@ -97,6 +99,7 @@ library(tidyverse)
 #         /3035                     : crs 3035 shapefile
 #         /4258                     : crs 4258 shapefile
 #         /4326                     : crs 4326 shapefile
+#       /hengl                      : european pnv, crs 3035
 #       /SMPDS                      : adjusted modern pollen data
 #       /raster_tree                : adjusted modern pollen data
 # /figs                             : figures/tables outputted from the analysis
@@ -119,6 +122,7 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
+# dir.create("data/input/Hengl")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
@@ -130,6 +134,7 @@ library(tidyverse)
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
 # dir.create("data/intermediate_output/vegetation/euro_map")
+# dir.create("data/intermediate_output/vegetation/hengl")
 # dir.create("data/intermediate_output/vegetation/SMPDS")
 # dir.create("data/intermediate_output/vegetation/raster_tree")
 # dir.create("figs")
@@ -167,7 +172,7 @@ boundary_area_4326 <- sf::st_bbox(c(xmin = euro_extent_4326_xmin, xmax = euro_ex
 # ---------------------------------------------------------
 
 
-# 3. Load and crop European base map
+# 3. Load and crop European base map and Hengl pnv map
 # ---------------------------------------------------------
 # ---------------------------------------------------------
 global_map_4326 <- rnaturalearth::ne_download(scale = 50, type = "land", category = "physical", returnclass = "sf")
@@ -196,6 +201,12 @@ raster::writeRaster(euro_map_3035_rast_50, "data/intermediate_output/vegetation/
 raster::writeRaster(euro_map_3035_rast_7, "data/intermediate_output/vegetation/euro_map/euro_map_3035_rast_7.tif", overwrite = TRUE)
 raster::writeRaster(euro_map_3035_rast_80, "data/intermediate_output/vegetation/euro_map/euro_map_3035_rast_80.tif", overwrite = TRUE)
 
+
+europe_biomes_3035 <- terra::rast("data/input/Hengl/hengl_pnv.tif") %>% 
+  terra::crop(., boundary_area_4326) %>% 
+  terra::project(., "EPSG:3035", method = "near")
+terra::writeRaster(europe_biomes_3035, "data/intermediate_output/vegetation/hengl/europe_biomes_3035.tif", overwrite = TRUE)
+
 # ---------------------------------------------------------
 
 
@@ -204,30 +215,59 @@ raster::writeRaster(euro_map_3035_rast_80, "data/intermediate_output/vegetation/
 # ---------------------------------------------------------
 #Copernicus fractional cover
 cop_file_list <- list.files("data/input/copernicus_frac_cover/", pattern = "\\.tif$", recursive = TRUE, full.names = TRUE) #filenames
-f_cop_mask <- function(a,b){
+f_cop_mask <- function(a,b,c){
   cop_file_list <- cop_file_list[stringr::str_detect(basename(cop_file_list), a)] #select cover files
   cop_cover <- terra::rast(cop_file_list) %>% #import and crop to extent
     terra::crop(., boundary_area_4326)
   cop_cover_max <- max(cop_cover, na.rm = TRUE) #identify the maximum value across layers
-  cop_cover_mask <- terra::clamp(cop_cover_max, lower = 49.5, values = FALSE) %>% #set all values less than 50% to NA then convert to 0
+  cop_cover_mask <- terra::clamp(cop_cover_max, lower = c, values = FALSE) %>% #set all values less than 50% to NA then convert to 0
     terra::subst(., NA, 0)
   assign(paste0("cop_cover_", b, "_mask"), cop_cover_mask, envir = parent.frame()) #store masked files
 }
   
 #Mask where 1. Crop is 50% or greater; 2. Snow and ice cover is 50%; 3. Bare is 50%; 4. Built-up is 50%; 5. Permanent water is 50%; 6. Moss is 50%
 #Load and crop to boundary
-f_cop_mask("Crops","crop")
-f_cop_mask("Snow","ice")
-f_cop_mask("Bare","bare")
-f_cop_mask("BuiltUp","built")
-f_cop_mask("PermanentWater","water")
-f_cop_mask("MossLichen","moss")
+f_cop_mask("Crops","crop",49.5)
+f_cop_mask("Crops","crop0.75",74.9)
+f_cop_mask("Crops","crop0.65",64.9)
+f_cop_mask("Crops","crop0.85",84.9)
+f_cop_mask("Crops","crop0.25",24.9)
+f_cop_mask("Crops","crop0.35",34.9)
+f_cop_mask("Snow","ice",49.5)
+f_cop_mask("Bare","bare",49.5)
+f_cop_mask("BuiltUp","built",49.5)
+f_cop_mask("PermanentWater","water",49.5)
+f_cop_mask("MossLichen","moss",49.5)
 
 
 #Combined mask layers
 cop_mask_comb <- cop_cover_water_mask + cop_cover_built_mask + cop_cover_bare_mask + cop_cover_ice_mask + cop_cover_crop_mask + cop_cover_moss_mask    #add layers than set values below 50% to NA
-cop_mask <- terra::clamp(cop_mask_comb, lower = 49.5, values = FALSE) #any layers above 50%
+cop_mask <- terra::clamp(cop_mask_comb, lower = 49.5, values = FALSE) #any layer above 50%
 terra::writeRaster(cop_mask, "data/intermediate_output/vegetation/copernicus/cop_mask_100m.tif", overwrite = TRUE)
+
+cop_mask_comb_not_crop <- cop_cover_water_mask + cop_cover_built_mask + cop_cover_bare_mask + cop_cover_ice_mask + cop_cover_moss_mask    #add layers than set values below 50% to NA
+cop_mask_not_crop <- terra::clamp(cop_mask_comb_not_crop, lower = 49.5, values = FALSE) #any layer above 50%
+terra::writeRaster(cop_mask_not_crop, "data/intermediate_output/vegetation/copernicus/cop_mask_not_crop_100m.tif", overwrite = TRUE)
+
+cop_mask_comb_crop0.75 <- cop_cover_water_mask + cop_cover_built_mask + cop_cover_bare_mask + cop_cover_ice_mask + cop_cover_moss_mask +  cop_cover_crop0.75_mask  #add layers than set values below 50% to NA
+cop_mask_crop0.75_mask <- terra::clamp(cop_mask_comb_crop0.75, lower = 49.5, values = FALSE) #any layer above 50%
+terra::writeRaster(cop_mask_crop0.75_mask, "data/intermediate_output/vegetation/copernicus/cop_mask_crop0.75_100m.tif", overwrite = TRUE)
+
+cop_mask_comb_crop0.65 <- cop_cover_water_mask + cop_cover_built_mask + cop_cover_bare_mask + cop_cover_ice_mask + cop_cover_moss_mask +  cop_cover_crop0.65_mask  #add layers than set values below 50% to NA
+cop_mask_crop0.65_mask <- terra::clamp(cop_mask_comb_crop0.65, lower = 49.5, values = FALSE) #any layer above 50%
+terra::writeRaster(cop_mask_crop0.65_mask, "data/intermediate_output/vegetation/copernicus/cop_mask_crop0.65_100m.tif", overwrite = TRUE)
+
+cop_mask_comb_crop0.85 <- cop_cover_water_mask + cop_cover_built_mask + cop_cover_bare_mask + cop_cover_ice_mask + cop_cover_moss_mask +  cop_cover_crop0.85_mask  #add layers than set values below 50% to NA
+cop_mask_crop0.85_mask <- terra::clamp(cop_mask_comb_crop0.85, lower = 49.5, values = FALSE) #any layer above 50%
+terra::writeRaster(cop_mask_crop0.85_mask, "data/intermediate_output/vegetation/copernicus/cop_mask_crop0.85_100m.tif", overwrite = TRUE)
+
+cop_mask_comb_crop0.35 <- cop_cover_water_mask + cop_cover_built_mask + cop_cover_bare_mask + cop_cover_ice_mask + cop_cover_moss_mask +  cop_cover_crop0.35_mask  #add layers than set values below 50% to NA
+cop_mask_crop0.35_mask <- terra::clamp(cop_mask_comb_crop0.35, lower = 34.5, values = FALSE) #any layer above 35%
+terra::writeRaster(cop_mask_crop0.35_mask, "data/intermediate_output/vegetation/copernicus/cop_mask_crop0.35_100m.tif", overwrite = TRUE)
+
+cop_mask_comb_crop0.25 <- cop_cover_water_mask + cop_cover_built_mask + cop_cover_bare_mask + cop_cover_ice_mask + cop_cover_moss_mask +  cop_cover_crop0.25_mask  #add layers than set values below 50% to NA
+cop_mask_crop0.25_mask <- terra::clamp(cop_mask_comb_crop0.25, lower = 24.5, values = FALSE) #any layer above 25%
+terra::writeRaster(cop_mask_crop0.25_mask, "data/intermediate_output/vegetation/copernicus/cop_mask_crop0.25_100m.tif", overwrite = TRUE)
 
 #Tree cover copfract
 cop_file_list_tree <- cop_file_list[stringr::str_detect(basename(cop_file_list), "Tree")] #select cover files
@@ -242,4 +282,44 @@ cop_tree_cover_masked <- terra::mask(cop_cover_tree_mean, cop_mask, inverse = TR
 terra::writeRaster(cop_tree_cover_masked, "data/intermediate_output/vegetation/copernicus/cop_masked_tree_cover_100m.tif", overwrite = TRUE)
 cop_tree_cover_masked_3035 <- terra::project(cop_tree_cover_masked, "EPSG:3035")
 terra::writeRaster(cop_tree_cover_masked_3035, "data/intermediate_output/vegetation/copernicus/cop_masked_tree_cover_3035_100m.tif", overwrite = TRUE)
+
+cop_tree_cover_masked_not_crop <- terra::mask(cop_cover_tree_mean, cop_mask_not_crop, inverse = TRUE)
+terra::writeRaster(cop_tree_cover_masked_not_crop, "data/intermediate_output/vegetation/copernicus/cop_masked_not_crop_tree_cover_100m.tif", overwrite = TRUE)
+cop_tree_cover_masked_not_crop_3035 <- terra::project(cop_tree_cover_masked_not_crop, "EPSG:3035")
+terra::writeRaster(cop_tree_cover_masked_not_crop_3035, "data/intermediate_output/vegetation/copernicus/cop_masked_not_crop_tree_cover_3035_100m.tif", overwrite = TRUE)
+
+cop_tree_cover_masked_crop0.75 <- terra::mask(cop_cover_tree_mean, cop_mask_crop0.75_mask, inverse = TRUE)
+terra::writeRaster(cop_tree_cover_masked_crop0.75, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.75_tree_cover_100m.tif", overwrite = TRUE)
+cop_tree_cover_masked_crop0.75_3035 <- terra::project(cop_tree_cover_masked_crop0.75, "EPSG:3035")
+terra::writeRaster(cop_tree_cover_masked_crop0.75_3035, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.75_3035_100m.tif", overwrite = TRUE)
+
+cop_tree_cover_masked_crop0.65 <- terra::mask(cop_cover_tree_mean, cop_mask_crop0.65_mask, inverse = TRUE)
+terra::writeRaster(cop_tree_cover_masked_crop0.65, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.65_tree_cover_100m.tif", overwrite = TRUE)
+cop_tree_cover_masked_crop0.65_3035 <- terra::project(cop_tree_cover_masked_crop0.65, "EPSG:3035")
+terra::writeRaster(cop_tree_cover_masked_crop0.65_3035, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.65_3035_100m.tif", overwrite = TRUE)
+
+cop_tree_cover_masked_crop0.85 <- terra::mask(cop_cover_tree_mean, cop_mask_crop0.85_mask, inverse = TRUE)
+terra::writeRaster(cop_tree_cover_masked_crop0.85, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.85_tree_cover_100m.tif", overwrite = TRUE)
+cop_tree_cover_masked_crop0.85_3035 <- terra::project(cop_tree_cover_masked_crop0.85, "EPSG:3035")
+terra::writeRaster(cop_tree_cover_masked_crop0.85_3035, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.85_3035_100m.tif", overwrite = TRUE)
+
+cop_tree_cover_masked_crop0.35 <- terra::mask(cop_cover_tree_mean, cop_mask_crop0.35_mask, inverse = TRUE)
+terra::writeRaster(cop_tree_cover_masked_crop0.35, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.35_tree_cover_100m.tif", overwrite = TRUE)
+cop_tree_cover_masked_crop0.35_3035 <- terra::project(cop_tree_cover_masked_crop0.35, "EPSG:3035")
+terra::writeRaster(cop_tree_cover_masked_crop0.35_3035, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.35_3035_100m.tif", overwrite = TRUE)
+
+cop_tree_cover_masked_crop0.25 <- terra::mask(cop_cover_tree_mean, cop_mask_crop0.25_mask, inverse = TRUE)
+terra::writeRaster(cop_tree_cover_masked_crop0.25, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.25_tree_cover_100m.tif", overwrite = TRUE)
+cop_tree_cover_masked_crop0.25_3035 <- terra::project(cop_tree_cover_masked_crop0.25, "EPSG:3035")
+terra::writeRaster(cop_tree_cover_masked_crop0.25_3035, "data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.25_3035_100m.tif", overwrite = TRUE)
+
+#Crop cover
+crop_cover_max <- terra::rast("data/input/copernicus_frac_cover//2019/PROBAV_LC100_global_v3.0.1_2019-nrt_Crops-CoverFraction-layer_EPSG-4326.tif" ) %>% 
+  terra::crop(., boundary_area_4326) %>% 
+  max(., na.rm = TRUE)
+terra::writeRaster(crop_cover_max, "data/intermediate_output/vegetation/copernicus/crop_cover_max.tif", overwrite = TRUE)
+crop_cover_max_3035 <- terra::project(crop_cover_max, "EPSG:3035")
+terra::writeRaster(crop_cover_max_3035, "data/intermediate_output/vegetation/copernicus/crop_cover_max_3035.tif", overwrite = TRUE)
+
+
 

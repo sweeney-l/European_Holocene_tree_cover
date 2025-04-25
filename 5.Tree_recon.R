@@ -26,6 +26,7 @@
 # 2. Load in data and quantile mapping adjustment model
 # 3. Import fossil pollen data and reshape
 # 4. Reconstructions
+# 5. (as 2,3,and partially 4 above, but where no shannon index included)
 
 # ---------------------------------------------------------
 
@@ -84,6 +85,7 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
+#       /Hengl                      : potential natural vegetation map from https://zenodo.org/records/10513520 
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
@@ -98,6 +100,7 @@ library(tidyverse)
 #         /3035                     : crs 3035 shapefile
 #         /4258                     : crs 4258 shapefile
 #         /4326                     : crs 4326 shapefile
+#       /hengl                      : european pnv, crs 3035
 #       /SMPDS                      : adjusted modern pollen data
 #       /raster_tree                : adjusted modern pollen data
 # /figs                             : figures/tables outputted from the analysis
@@ -120,6 +123,7 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
+# dir.create("data/input/Hengl")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
@@ -131,6 +135,7 @@ library(tidyverse)
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
 # dir.create("data/intermediate_output/vegetation/euro_map")
+# dir.create("data/intermediate_output/vegetation/hengl")
 # dir.create("data/intermediate_output/vegetation/SMPDS")
 # dir.create("data/intermediate_output/vegetation/raster_tree")
 # dir.create("figs")
@@ -520,6 +525,19 @@ epd_tree_shannon_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
       dplyr::rename(tree_shannon = value)
 }, mc.cores = 6)
 
+epd_tree_shannon_bin200 <- epd_tree_shannon_ls$median %>% 
+  dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, entity_name, latitude, longitude, median, site_type, elevation), by = "ID_SAMPLE")  %>% 
+  dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) %>% 
+  dplyr::filter(elevation < 1000) %>%  #Limit to records below 1000m)) 
+  dplyr::select(entity_name, tree_shannon, median) %>% 
+  dplyr::mutate(bin = ggplot2::cut_width(median, width = 200, center = 0, labels = F)) %>%    #place in 200 year bins
+  dplyr::mutate(bin_age = (bin * 200) - 200) %>%
+  dplyr::filter(bin_age <=14000)  %>% 
+  dplyr::group_by(entity_name, bin_age) %>% 
+  dplyr::summarise(tree_shannon = mean(tree_shannon)) %>%
+  dplyr::ungroup() 
+
+rio::export(epd_tree_shannon_bin200,"data/intermediate_output/vegetation/epd_tree_shannon_bin200.csv")
 
 #Hills N2 filter
 epd_hillsN2_ls <- parallel::mclapply(epd_pollen_wider_ls, function(x){
@@ -565,6 +583,38 @@ epd_pollen_ap_needleshare_per_ls3 <- lapply(epd_pollen_ap_needleshare_per_ls2, f
     dplyr::mutate(needle_share = tidyr::replace_na(needle_share, 0))
 })
 
+#Wind pollination
+epd_pollen_ap_windshare_per_ls1 <- lapply(epd_pollen_counts_APinfo_ls,function(x){
+  x %>%
+    dplyr::filter(ap_sp_hp == "AP") %>%
+    dplyr::mutate(wind = dplyr::if_else(is.na(pollination), "unknown", pollination)) %>%   #need to remove NA
+    dplyr::filter(wind == "wind") %>%
+    dplyr::group_by(ID_SAMPLE) %>%
+    dplyr::summarise(ap_cover_wind = sum(percentage_cover)) %>%
+    dplyr::ungroup()
+})
+epd_pollen_ap_windshare_per_ls2 <- purrr::map2(epd_pollen_ap_windshare_per_ls1, epd_pollen_ap_per_ls, dplyr::left_join)
+epd_pollen_ap_wind_per_ls3 <- lapply(epd_pollen_ap_wind_per_ls2, function(x){
+  x %>% 
+    dplyr::mutate(wind_share = ap_cover_wind/ap_cover)  %>%
+    dplyr::mutate(wind_share = tidyr::replace_na(wind_share, 0))
+})
+
+#Pinus
+epd_pollen_ap_pinusshare_per_ls1 <- lapply(epd_pollen_counts_APinfo_ls,function(x){
+  x %>%
+    dplyr::filter(ap_sp_hp == "AP") %>%
+    dplyr::filter(clean_taxon_name %in% c("Pinus","Pinus (diploxylon)","Pinus (haploxylon)")) %>%
+    dplyr::group_by(ID_SAMPLE) %>%
+    dplyr::summarise(ap_cover_pinus = sum(percentage_cover)) %>%
+    dplyr::ungroup()
+})
+epd_pollen_ap_pinusshare_per_ls2 <- purrr::map2(epd_pollen_ap_pinusshare_per_ls1, epd_pollen_ap_per_ls, dplyr::left_join)
+epd_pollen_ap_pinusshare_per_ls3 <- lapply(epd_pollen_ap_pinus_per_ls2, function(x){
+  x %>% 
+    dplyr::mutate(pinus_share = ap_cover_pinus/ap_cover)  %>%
+    dplyr::mutate(pinus_share = tidyr::replace_na(pinus_share, 0))
+})
 
 #SP cover
 epd_pollen_counts_SPinfo_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
@@ -590,6 +640,8 @@ epd_hillsN2 <- epd_hillsN2_ls$median
 epd_pollen_ap_per <- epd_pollen_ap_per_ls$median
 epd_pollen_sp_per <- epd_pollen_sp_per_ls$median
 epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$median
+# epd_pollen_ap_windshare_per <- epd_pollen_ap_windshare_per_ls3$median
+# epd_pollen_ap_pinusshare_per <- epd_pollen_ap_pinusshare_per_ls3$median
 
 lq_epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$lq
 lq_epd_shannon <- epd_shannon_ls$lq
@@ -598,6 +650,8 @@ lq_epd_hillsN2 <- epd_hillsN2_ls$lq
 lq_epd_pollen_ap_per <- epd_pollen_ap_per_ls$lq
 lq_epd_pollen_sp_per <- epd_pollen_sp_per_ls$lq
 lq_epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$lq
+# lq_epd_pollen_ap_windshare_per <- epd_pollen_ap_windshare_per_ls3$lq
+# lq_epd_pollen_ap_pinusshare_per <- epd_pollen_ap_pinusshare_per_ls3$lq
 
 uq_epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$uq
 uq_epd_shannon <- epd_shannon_ls$uq
@@ -606,7 +660,8 @@ uq_epd_hillsN2 <- epd_hillsN2_ls$uq
 uq_epd_pollen_ap_per <- epd_pollen_ap_per_ls$uq
 uq_epd_pollen_sp_per <- epd_pollen_sp_per_ls$uq
 uq_epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$uq
-
+# uq_epd_pollen_ap_windshare_per <- epd_pollen_ap_windshare_per_ls3$uq
+# uq_epd_pollen_ap_pinusshare_per <- epd_pollen_ap_pinusshare_per_ls3$uq
 
 epd_downcore_input <- epd_pollen_counts_tps %>% 
   dplyr::select(ID_SAMPLE, elevation) %>%
@@ -618,7 +673,9 @@ epd_downcore_input <- epd_pollen_counts_tps %>%
   dplyr::mutate(ap_cover = ap_cover / 100) %>% 
   dplyr::left_join(epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
   dplyr::mutate(sp_cover = sp_cover / 100) %>% 
-  dplyr::left_join(dplyr::select(epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  dplyr::left_join(dplyr::select(epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>%
+  # dplyr::left_join(dplyr::select(epd_pollen_ap_windshare_per, ID_SAMPLE, wind_share), by = "ID_SAMPLE") %>%
+  # dplyr::left_join(dplyr::select(epd_pollen_ap_pinusshare_per, ID_SAMPLE, pinus_share), by = "ID_SAMPLE") %>%
   dplyr::filter(HillsN2 >= 2) %>% #Hills filter
   dplyr::select(-HillsN2) %>% 
   dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
@@ -638,6 +695,8 @@ lq_epd_downcore_input <- lq_epd_pollen_counts_tps %>%
   dplyr::left_join(lq_epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
   dplyr::mutate(sp_cover = sp_cover / 100) %>% 
   dplyr::left_join(dplyr::select(lq_epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  # dplyr::left_join(dplyr::select(lq_epd_pollen_ap_windshare_per, ID_SAMPLE, wind_share), by = "ID_SAMPLE") %>%
+  # dplyr::left_join(dplyr::select(lq_epd_pollen_ap_pinusshare_per, ID_SAMPLE, pinus_share), by = "ID_SAMPLE") %>%
   dplyr::filter(HillsN2 >= 2) %>% #Hills filter
   dplyr::select(-HillsN2) %>% 
   dplyr::left_join(dplyr::select(lq_pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
@@ -657,6 +716,8 @@ uq_epd_downcore_input <- uq_epd_pollen_counts_tps %>%
   dplyr::left_join(uq_epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
   dplyr::mutate(sp_cover = sp_cover / 100) %>% 
   dplyr::left_join(dplyr::select(uq_epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  # dplyr::left_join(dplyr::select(uq_epd_pollen_ap_windshare_per, ID_SAMPLE, wind_share), by = "ID_SAMPLE") %>%
+  # dplyr::left_join(dplyr::select(uq_epd_pollen_ap_pinusshare_per, ID_SAMPLE, pinus_share), by = "ID_SAMPLE") %>%
   dplyr::filter(HillsN2 >= 2) %>% #Hills filter
   dplyr::select(-HillsN2) %>% 
   dplyr::left_join(dplyr::select(uq_pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
@@ -750,6 +811,11 @@ ap_cover_tree <- recon_tree %>%
 rio::export(ap_cover_tree, "data/intermediate_output/vegetation/ap_cover_tree.csv")
 
 #Bin data into 200yrs bins
+recon_tree <- rio::import("data/intermediate_output/vegetation/recon_tree.csv")
+lq_recon_tree <- rio::import("data/intermediate_output/vegetation/lq_recon_tree.csv")
+uq_recon_tree <- rio::import("data/intermediate_output/vegetation/uq_recon_tree.csv")
+ap_cover_tree <- rio::import("data/intermediate_output/vegetation/ap_cover_tree.csv")
+
 recon_tree_ls <- list(recon_tree, lq_recon_tree, uq_recon_tree, ap_cover_tree)
 names(recon_tree_ls) <- c("median", "lq", "uq", "ap")
 
@@ -820,6 +886,37 @@ rio::export(bin_200_median_recon_tree_ls$ap, "data/intermediate_output/vegetatio
 rio::export(bin_200_max_recon_tree_ls$ap, "data/intermediate_output/vegetation/bin_200_max_ap_tree.csv")
 rio::export(bin_200_n_recon_tree_ls$ap, "data/intermediate_output/vegetation/bin_200_n_ap_tree.csv")
 
+recon_shannon_binned_200_ls <- lapply(recon_tree_ls, function(x){
+  x %>% 
+    dplyr::rename(date_value = 13) %>% 
+    dplyr::mutate(bin = ggplot2::cut_width(date_value, width = 200, center = 0, labels = F)) %>%    #place in 200 year bins
+    dplyr::mutate(bin_age = (bin * 200) - 200) %>%
+    dplyr::filter(bin_age <=14000)  %>% 
+    dplyr::group_by(entity_name, bin_age) %>% 
+    dplyr::summarise(shannon = mean(shannon)) %>%
+    dplyr::ungroup() %>%
+    dplyr::left_join(dplyr::select(pollen_sample_ages, entity_name, latitude, longitude), by = "entity_name") %>% 
+    dplyr::distinct()
+})
+
+ggplot2::ggplot(data = recon_shannon_binned_200_ls$median, mapping = aes(x = bin_age, y = shannon))+
+  geom_point()+
+  geom_smooth()+
+  theme_bw()+
+  scale_x_reverse(limit=c(12000,0))
+
+bin_200_median_recon_shannon_ls <- lapply(recon_shannon_binned_200_ls, function(x){ #Calculate median through time
+  x %>% 
+    dplyr::group_by(bin_age) %>% 
+    dplyr::summarise(shannon_median = median(shannon), shannon_lower = quantile(shannon,probs = c(0.25)),shannon_higher = quantile(shannon,probs = c(0.75))) %>% 
+    dplyr::ungroup()
+}) 
+
+ggplot2::ggplot(data = bin_200_median_recon_shannon_ls$median, mapping = aes(x = bin_age, y = shannon_median))+
+  geom_point()+
+  geom_smooth()+
+  theme_bw()+
+  scale_x_reverse(limit=c(12000,0))
 
 ##Reconstruction analysis
 recon_tree <- rio::import("data/intermediate_output/vegetation/recon_tree.csv")
@@ -2128,5 +2225,766 @@ cor(modern_comp_sergeID$serge_tree,modern_comp_sergeID$tree)
 cor(modern_comp_zanID$zan_tree,modern_comp_zanID$refitted)
 cor(modern_comp_sergeID$serge_tree,modern_comp_sergeID$refitted)
 
+
+
+# ---------------------------------------------------------
+
+
+# 5. (as 2,3,and partially 4 above, but where no shannon index included)
+# ---------------------------------------------------------
+# ---------------------------------------------------------
+
+# 5.22. Load in data and quantile mapping adjustment model
+
+#Input files
+ap_tree_cover <- rio::import("data/intermediate_output/vegetation/ap_tree_cover.csv")
+tree_model_ns <- readRDS("data/intermediate_output/vegetation/tree_beta_no_tree_shannon.rda") #modern tree cover model
+boot_tree_model_ns <- readRDS("data/intermediate_output/vegetation/boot_tree_beta_no_tree_shannon.rda")
+taxa_cat <- rio::import("data/input/taxa_cat.csv") %>% #import information regarding the taxa
+  dplyr::arrange(taxon_name) 
+taxa_cat_single <- taxa_cat %>% #for single clean_taxon_name
+  dplyr::select(-taxon_name) %>% 
+  dplyr::distinct()
+loocv_predict_ns <- rio::import( "data/intermediate_output/vegetation/loocv_no_tree_shannon.csv")
+boot_predict_ns <- readRDS( "data/intermediate_output/vegetation/boot_dataset_pred_df_no_tree_shannon.rda")
+
+##Set map extents (as 1.Map_setup)
+euro_extent_4258_ymin <- 34 
+euro_extent_4258_ymax <- 73
+euro_extent_4258_xmin <- -12
+euro_extent_4258_xmax <- 45
+
+#Load in necessary maps and rasters
+euro_map_3035 <- sf::st_read("data/intermediate_output/vegetation/euro_map/3035/euro_map_3035.shp") #load map (1.Map_setup)
+euro_map_3035_rast_50 <- raster::raster("data/intermediate_output/vegetation/euro_map/euro_map_3035_rast_50.tif") #(1.Map_setup)
+euro_map_3035_rast_7 <- raster::raster("data/intermediate_output/vegetation/euro_map/euro_map_3035_rast_7.tif") #(1.Map_setup) - for use with Zanon data
+euro_map_3035_rast_80 <- raster::raster("data/intermediate_output/vegetation/euro_map/euro_map_3035_rast_80.tif") #(1.Map_setup) - for use with Serge data
+
+#Analyse relationships observed tree cover against LOOCV predictions 
+fitted_tree_plot_ns <- loocv_predict_ns %>% 
+  dplyr::select(ID_ENTITY, tree, prediction, E, latitude, longitude) %>% 
+  dplyr::rename(observed = tree, predicted = prediction, difference = E) %>% #rename variables
+  dplyr::mutate(difference = - difference) %>% #observation minus predictions
+  dplyr::mutate(observed100 = observed*100, predicted100 = predicted*100) %>% #convert to precentage
+  dplyr::mutate(observed_group = ggplot2::cut_width(observed100, width = 10, center = 5)) %>% 
+  dplyr::arrange(observed_group)
+
+rio::export(fitted_tree_plot_ns, "data/intermediate_output/vegetation/fitted_tree_plot_ns.csv")
+
+fitted_tree_plot_nonaobs_ns <- dplyr::filter(fitted_tree_plot_ns, !is.na(observed)) #exclude records with  no observed cover
+round(cor(fitted_tree_plot_nonaobs_ns$observed, fitted_tree_plot_nonaobs_ns$predicted),3) #correlation between obersevations and predictions
+lm(fitted_tree_plot_nonaobs_ns$predicted~fitted_tree_plot_nonaobs_ns$observed)
+round(max(fitted_tree_plot_ns$predicted, na.rm = TRUE),2) #investigate maximum predicted values
+round(max(fitted_tree_plot_ns$observed, na.rm = TRUE),2) #investigate maximum observed values
+
+
+
+#Empirical adjustment quantile mapping
+tree_qmap_model_ssplin_ns <- qmap::fitQmapSSPLIN(fitted_tree_plot_nonaobs_ns$observed, fitted_tree_plot_nonaobs_ns$predicted, wet.day = TRUE, qstep = 0.001) #quantile fit using smoothing spline
+fitted_tree_plot_qmap_ns <- fitted_tree_plot_nonaobs_ns %>% 
+  dplyr::mutate(refitted = qmap::doQmapSSPLIN(fitted_tree_plot_nonaobs_ns$predicted, tree_qmap_model_ssplin_ns)) %>% #re-fit values
+  dplyr::mutate(difference2 = refitted-observed) %>%   #refitted minus observed
+  dplyr::mutate(refitted100 = refitted*100) %>% 
+  dplyr::arrange(observed_group)
+
+rio::export(fitted_tree_plot_qmap_ns, "data/intermediate_output/vegetation/fitted_tree_plot_qmap_ns.csv")
+
+refitted_tree_plot_nonaobs_ns <- dplyr::filter(fitted_tree_plot_qmap_ns, !is.na(observed))
+round(cor(refitted_tree_plot_nonaobs_ns$observed, refitted_tree_plot_nonaobs_ns$refitted),3) #correlation between observations and adjusted predictions
+
+refitted_model_3035_ns <- fitted_tree_plot_qmap_ns %>%
+  dplyr::select(longitude, latitude, difference2) %>%
+  sf::st_as_sf(coords = c("longitude", "latitude"), agr = "constant",crs = 4258) %>%
+  sf::st_transform(crs = 3035)
+
+refitted_model_rast_ns <- terra::rasterize(refitted_model_3035_ns, euro_map_3035_rast_50, fun = mean)
+refitted_model_df_ns <- terra::as.data.frame(refitted_model_rast_ns, xy = TRUE, na.rm = TRUE) %>% 
+  dplyr::mutate(difference3 = ggplot2::cut_width(difference2, width = 0.4)) %>% 
+  dplyr::mutate(Percentage_difference = dplyr::if_else(difference3 == "(-0.2,0.2]", "-20 to 20", difference3)) %>% 
+  dplyr::mutate(Percentage_difference = dplyr::if_else(difference3 == "(-0.6,-0.2]", "-60 to -20", Percentage_difference)) %>%
+  dplyr::mutate(Percentage_difference = dplyr::if_else(difference3 == "[-1,-0.6]", "-100 to -60", Percentage_difference)) %>%
+  dplyr::mutate(Percentage_difference = dplyr::if_else(difference3 == "(0.2,0.6]", "20 to 60", Percentage_difference)) %>%
+  dplyr::mutate(Percentage_difference = dplyr::if_else(difference3 == "(0.6,1]", "60 to 100", Percentage_difference)) 
+
+refitted_model_df_ns$Percentage_difference <- factor(refitted_model_df_ns$Percentage_difference, levels = c("-100 to -60",
+                                                                                                            "-60 to -20",
+                                                                                                            "-20 to 20",
+                                                                                                            "20 to 60",
+                                                                                                            "60 to 100"))
+rio::export(refitted_model_df_ns, "data/intermediate_output/vegetation/refitted_model_df_ns.csv")
+
+
+
+#Analyse relationships observed tree cover against AP values
+ap_tree_plot_ns <- loocv_predict_ns %>% 
+  dplyr::select(ID_ENTITY, tree, ap_cover, latitude, longitude) %>% 
+  dplyr::rename(observed = tree) %>% #rename variables
+  dplyr::mutate(difference = observed - ap_cover) %>% 
+  dplyr::mutate(difference = - difference) %>% # predictions minus observations
+  dplyr::mutate(observed100 = observed*100, ap100 = ap_cover*100) %>% #convert to precentage
+  dplyr::mutate(observed_group = ggplot2::cut_width(observed100, width = 10, center = 5)) %>% 
+  dplyr::arrange(observed_group)
+
+rio::export(ap_tree_plot_ns, "data/intermediate_output/vegetation/ap_tree_plot_ns.csv")
+
+ap_tree_plot_nonaobs_ns <- dplyr::filter(ap_tree_plot_ns, !is.na(observed)) #exclude records with  no observed cover
+round(cor(ap_tree_plot_nonaobs_ns$observed, ap_tree_plot_nonaobs_ns$ap_cover),3) #correlation between obersevations and predictions
+round(max(ap_tree_plot_ns$ap_cover, na.rm = TRUE),2) #investigate maximum ap values
+round(max(ap_tree_plot_ns$observed, na.rm = TRUE),2) #investigate maximum observed values
+
+
+#Bootstraps
+#Analyse relationships observed tree cover against LOOCV predictions
+boot_fitted_tree_plot_ns <- boot_predict_ns %>%
+  dplyr::mutate(E = tree - prediction) %>%
+  dplyr::select(ID_ENTITY, tree, prediction, E, latitude, longitude, boot) %>%
+  dplyr::rename(observed = tree, predicted = prediction, difference = E) %>% #rename variables
+  dplyr::mutate(difference = - difference) %>% #observation minus predictions
+  dplyr::mutate(observed100 = observed*100, predicted100 = predicted*100) %>% #convert to precentage
+  dplyr::mutate(observed_group = ggplot2::cut_width(observed100, width = 10, center = 5)) %>%
+  dplyr::arrange(boot,observed_group)
+
+rio::export(boot_fitted_tree_plot_ns, "data/intermediate_output/vegetation/boot_fitted_tree_plot_ns.csv")
+boot_fitted_tree_plot_nonaobs_ns <- dplyr::filter(boot_fitted_tree_plot_ns, !is.na(observed)) #exclude records with  no observed cover
+boot_fitted_tree_plot_nonaobs_ls_ns <- boot_fitted_tree_plot_nonaobs_ns %>%
+  dplyr::group_by(boot) %>%
+  dplyr::group_split()
+
+#Empirical adjustment quantile mapping
+boot_tree_qmap_model_ssplin_ns <- lapply(boot_fitted_tree_plot_nonaobs_ls_ns, function(x){
+  qmap::fitQmapSSPLIN(x$observed, x$predicted, wet.day = TRUE, qstep = 0.001) #quantile fit using smoothing spline
+})
+
+
+
+# ---------------------------------------------------------
+
+
+
+
+# 5.3. Import fossil pollen data and reshape
+# ---------------------------------------------------------
+# ---------------------------------------------------------
+
+#Load special EPD data 
+age_model <- rio::import("data/input/SPECIAL-EPD/age_model.csv") %>% 
+  dplyr::filter(median != "unknown") %>% 
+  dplyr::mutate(median = as.numeric(median))
+dates <- rio::import("data/input/SPECIAL-EPD/dates.csv") %>% 
+  dplyr::rename(depth = `depth (cm)`)
+entity <- rio::import("data/input/SPECIAL-EPD/metadata.csv")
+pollen_count <- rio::import("data/input/SPECIAL-EPD/pollen_counts_amalgamated.csv")
+sample <- rio::import("data/input/SPECIAL-EPD/samples.csv") %>% 
+  dplyr::rename(depth = `depth (cm)`)
+
+#Rename and reshape data
+multiple_entity_site_check <- sample %>% #limit entities to one per site
+  dplyr::left_join(dplyr::select(age_model, ID_SAMPLE, median), by = "ID_SAMPLE") %>%
+  dplyr::filter(median <= 12000) %>%
+  dplyr::group_by(ID_ENTITY) %>%
+  dplyr::summarise(number_per_entity = n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(dplyr::select(entity, ID_ENTITY, ID_SITE), by = "ID_ENTITY")  %>%
+  dplyr::group_by(ID_SITE)  %>%
+  dplyr::slice_max(number_per_entity, with_ties = FALSE) %>% #if same number then just one allowed
+  dplyr::ungroup()
+
+lq_multiple_entity_site_check <- sample %>% #limit entities to one per site
+  dplyr::left_join(dplyr::select(age_model, ID_SAMPLE, median, UNCERT_25), by = "ID_SAMPLE")  %>%
+  dplyr::filter(UNCERT_25 != "unknown") %>% #for quartile analysis of age model
+  dplyr::mutate(lowerq = median + as.numeric(UNCERT_25)) %>%
+  dplyr::filter(lowerq >= -70) %>%  #To prevent dates into the future
+  dplyr::filter(lowerq <= 12000) %>%
+  dplyr::group_by(ID_ENTITY) %>%
+  dplyr::summarise(number_per_entity = n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(dplyr::select(entity, ID_ENTITY, ID_SITE), by = "ID_ENTITY")  %>%
+  dplyr::group_by(ID_SITE) %>%
+  dplyr::slice_max(number_per_entity, with_ties = FALSE) %>% #if same number then just one allowed
+  dplyr::ungroup()
+
+uq_multiple_entity_site_check <- sample %>% #limit entities to one per site
+  dplyr::left_join(dplyr::select(age_model, ID_SAMPLE, median, UNCERT_75), by = "ID_SAMPLE")  %>%
+  dplyr::filter(UNCERT_75 != "unknown") %>% #for quartile analysis of age model
+  dplyr::mutate(upperq = median - as.numeric(UNCERT_75)) %>%
+  dplyr::filter(upperq >= -70) %>%  #To prevent dates into the future
+  dplyr::filter(upperq <= 12000) %>%
+  dplyr::group_by(ID_ENTITY) %>%
+  dplyr::summarise(number_per_entity = n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(dplyr::select(entity, ID_ENTITY, ID_SITE), by = "ID_ENTITY")  %>%
+  dplyr::group_by(ID_SITE) %>%
+  dplyr::slice_max(number_per_entity, with_ties = FALSE) %>% #if same number then just one allowed
+  dplyr::ungroup()
+
+entity_epd <- entity %>% 
+  dplyr::mutate(handle = entity_name) %>% 
+  dplyr::filter(ID_ENTITY %in% c(multiple_entity_site_check$ID_ENTITY)) 
+
+lq_entity_epd <- entity %>% 
+  dplyr::mutate(handle = entity_name) %>% 
+  dplyr::filter(ID_ENTITY %in% c(lq_multiple_entity_site_check$ID_ENTITY)) 
+
+uq_entity_epd <- entity %>% 
+  dplyr::mutate(handle = entity_name) %>% 
+  dplyr::filter(ID_ENTITY %in% c(uq_multiple_entity_site_check$ID_ENTITY)) 
+
+sample_epd <- sample
+age_model_epd <- age_model
+pollen_count_epd <- pollen_count
+
+pollen_sample_ages <- sample_epd %>% #Depth and date info regarding samples
+  dplyr::left_join(age_model_epd, by = "ID_SAMPLE") %>% 
+  dplyr::left_join(entity_epd, by = "ID_ENTITY") %>% 
+  dplyr::filter(!site_type %in% c("archaeological site", 
+                                  "cave",
+                                  "coastal, estuarine",
+                                  "coastal, lagoon",
+                                  "glacial",
+                                  "fluvial",
+                                  "marine"))  
+
+lq_pollen_sample_ages <- sample_epd %>% #Depth and date info regarding samples
+  dplyr::left_join(age_model_epd, by = "ID_SAMPLE")  %>% 
+  dplyr::filter(UNCERT_25 != "unknown") %>% 
+  dplyr::mutate(lowerq = median + as.numeric(UNCERT_25)) %>% 
+  dplyr::filter(lowerq >= -70) %>%  #To prevent dates into the future
+  dplyr::left_join(lq_entity_epd, by = "ID_ENTITY") %>% 
+  dplyr::filter(!site_type %in% c("archaeological site", 
+                                  "cave",
+                                  "coastal, estuarine",
+                                  "coastal, lagoon",
+                                  "glacial",
+                                  "fluvial",
+                                  "marine"))   
+
+uq_pollen_sample_ages <- sample_epd %>% #Depth and date info regarding samples
+  dplyr::left_join(age_model_epd, by = "ID_SAMPLE")  %>% 
+  dplyr::filter(UNCERT_75 != "unknown") %>% 
+  dplyr::mutate(upperq = median - as.numeric(UNCERT_75)) %>% 
+  dplyr::filter(upperq >= -70) %>%  #To prevent dates into the future
+  dplyr::left_join(uq_entity_epd, by = "ID_ENTITY") %>% 
+  dplyr::filter(!site_type %in% c("archaeological site", 
+                                  "cave",
+                                  "coastal, estuarine",
+                                  "coastal, lagoon",
+                                  "glacial",
+                                  "fluvial",
+                                  "marine"))  
+
+pollen_sample_age_nona <- pollen_sample_ages %>% #filter to records with a median date
+  dplyr::filter(!is.na(median))
+total_epd_records <- length(unique(pollen_sample_age_nona$handle))
+
+lq_pollen_sample_age_nona <- lq_pollen_sample_ages %>% 
+  dplyr::filter(!is.na(lowerq))
+lq_total_epd_records <- length(unique(lq_pollen_sample_age_nona$handle))
+
+uq_pollen_sample_age_nona <- uq_pollen_sample_ages %>% 
+  dplyr::filter(!is.na(upperq))
+uq_total_epd_records <- length(unique(uq_pollen_sample_age_nona$handle))
+
+
+#Select data
+epd_counts_taxon_am2 <- pollen_count_epd %>% 
+  tidyr::pivot_longer(!ID_SAMPLE, names_to = "taxon_name", values_to = "count") %>% 
+  tidyr::drop_na() %>% 
+  dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, depth, median, handle), by = "ID_SAMPLE") %>% #Ensure required details added
+  dplyr::rename(quantity = count) %>% #Rename for later
+  dplyr::mutate(Notes = 0) %>% #Add for later combining
+  dplyr::select(ID_SAMPLE, handle, depth, median, taxon_name, quantity, Notes) %>% 
+  dplyr::filter(!is.na(median)) #To ensure all count info has a date
+
+epd_pollen_counts <- epd_counts_taxon_am2 %>% #All of the pollen data, with dates
+  dplyr::filter(median <= 14000) %>% #drop older data
+  dplyr::filter(!is.na(quantity)) %>%  #drop na quantities
+  dplyr::filter(quantity >= 0) %>% #get rid of negative quantities
+  dplyr::arrange(handle, depth, taxon_name) %>% 
+  dplyr::left_join(dplyr::select(entity_epd, handle, latitude, longitude, elevation), by = "handle") %>%  #add in coordinate and elevation info
+  dplyr::filter(dplyr::between(latitude, euro_extent_4258_ymin, euro_extent_4258_ymax)) %>% #Limit to European range
+  dplyr::filter(dplyr::between(longitude, euro_extent_4258_xmin, euro_extent_4258_xmax))
+
+lq_epd_counts_taxon_am2 <- pollen_count_epd %>% 
+  tidyr::pivot_longer(!ID_SAMPLE, names_to = "taxon_name", values_to = "count") %>%  #CSVs
+  tidyr::drop_na() %>% #CSVs
+  dplyr::left_join(dplyr::select(lq_pollen_sample_ages, ID_SAMPLE, depth, lowerq, handle), by = "ID_SAMPLE") %>% #Ensure required details added
+  dplyr::rename(quantity = count) %>% #Rename for later
+  dplyr::mutate(Notes = 0) %>% #Add for later combining
+  dplyr::select(ID_SAMPLE, handle, depth, lowerq, taxon_name, quantity, Notes) %>% 
+  dplyr::filter(!is.na(lowerq)) #To ensure all count info has a date
+
+lq_epd_pollen_counts <- lq_epd_counts_taxon_am2 %>% #All of the pollen data, with dates
+  dplyr::filter(lowerq <= 14000) %>% #drop older data
+  dplyr::filter(!is.na(quantity)) %>%  #drop na quantities
+  dplyr::filter(quantity >= 0) %>% #get rid of negative quantities
+  dplyr::arrange(handle, depth, taxon_name) %>% 
+  dplyr::left_join(dplyr::select(lq_entity_epd, handle, latitude, longitude, elevation), by = "handle") %>%  #add in coordinate and elevation info
+  dplyr::filter(dplyr::between(latitude, euro_extent_4258_ymin, euro_extent_4258_ymax)) %>% #Limit to European range
+  dplyr::filter(dplyr::between(longitude, euro_extent_4258_xmin, euro_extent_4258_xmax))
+
+uq_epd_counts_taxon_am2 <- pollen_count_epd %>% 
+  tidyr::pivot_longer(!ID_SAMPLE, names_to = "taxon_name", values_to = "count") %>%  #CSVs
+  tidyr::drop_na() %>% #CSVs
+  dplyr::left_join(dplyr::select(uq_pollen_sample_ages, ID_SAMPLE, depth, upperq, handle), by = "ID_SAMPLE") %>% #Ensure required details added
+  dplyr::rename(quantity = count) %>% #Rename for later
+  dplyr::mutate(Notes = 0) %>% #Add for later combining
+  dplyr::select(ID_SAMPLE, handle, depth, upperq, taxon_name, quantity, Notes) %>% 
+  dplyr::filter(!is.na(upperq))   #To ensure all count info has a date
+
+uq_epd_pollen_counts <- uq_epd_counts_taxon_am2 %>% #All of the pollen data, with dates
+  dplyr::filter(upperq <= 14000) %>% #drop older data
+  dplyr::filter(!is.na(quantity)) %>%  #drop na quantities
+  dplyr::filter(quantity >= 0) %>% #get rid of negative quantities
+  dplyr::arrange(handle, depth, taxon_name) %>% 
+  dplyr::left_join(dplyr::select(uq_entity_epd, handle, latitude, longitude, elevation), by = "handle") %>%  #add in coordinate and elevation info
+  dplyr::filter(dplyr::between(latitude, euro_extent_4258_ymin, euro_extent_4258_ymax)) %>% #Limit to European range
+  dplyr::filter(dplyr::between(longitude, euro_extent_4258_xmin, euro_extent_4258_xmax))
+
+#Add taxon cleaner data and filter
+epd_pollen_counts_cleaner <- epd_pollen_counts %>% 
+  dplyr::left_join(taxa_cat, by = c("taxon_name")) %>% 
+  dplyr::rename(date_value = median)
+lq_epd_pollen_counts_cleaner <- lq_epd_pollen_counts %>% 
+  dplyr::left_join(taxa_cat, by = c("taxon_name")) %>%
+  dplyr::rename(date_value = lowerq)
+uq_epd_pollen_counts_cleaner <- uq_epd_pollen_counts %>% 
+  dplyr::left_join(taxa_cat, by = c("taxon_name")) %>%
+  dplyr::rename(date_value = upperq)
+
+epd_pollen_counts_cleaner_ls <- list(epd_pollen_counts_cleaner,lq_epd_pollen_counts_cleaner,uq_epd_pollen_counts_cleaner)
+names(epd_pollen_counts_cleaner_ls) <- c("median", "lq", "uq")
+
+epd_pollen_counts_tps_ls <- parallel::mclapply(epd_pollen_counts_cleaner_ls, function(x){
+  x %>% 
+    dplyr::filter(terrestrial_pollen_sum == "yes") %>% #just those within TPS
+    dplyr::select(-taxon_name) %>% 
+    dplyr::distinct() %>% #remove potential duplicate rows caused by clean_taxa_name being the same for some taxa_name
+    dplyr::mutate(europe = dplyr::if_else(is.na(europe), "none", europe)) %>% 
+    dplyr::filter(europe != "not native to Europe") %>%  #remove non native species
+    dplyr::select(-europe) %>% 
+    dplyr::select(ID_SAMPLE, handle, depth, date_value, latitude, longitude, elevation, clean_taxon_name, quantity) %>%
+    dplyr::mutate(clean_taxon_name = stringr::str_replace_all(clean_taxon_name, " type", "")) %>% #to stop type being a seperate species
+    dplyr::group_by(ID_SAMPLE, handle, depth, date_value, latitude, longitude, elevation, clean_taxon_name) %>% #to sum quantities over same species
+    dplyr::summarise(quantity = sum(quantity)) %>% 
+    dplyr::ungroup() 
+}, mc.cores = 6)
+
+
+##Calculate indices
+epd_pollen_wider_ls <- parallel::mclapply(epd_pollen_counts_tps_ls, function(x){
+  x %>% 
+    dplyr::arrange(ID_SAMPLE, clean_taxon_name) %>% 
+    dplyr::select(ID_SAMPLE, clean_taxon_name, quantity) %>% 
+    tidyr::pivot_wider(names_from = clean_taxon_name, values_from = quantity, values_fill = 0) 
+},mc.cores = 6)
+
+#Pollen percentages
+epd_pollen_wider_per_ls <- parallel::mclapply(epd_pollen_wider_ls, function(x){
+  x %>% 
+    smpds::normalise_taxa(cols = 1)  #calculate percentages, ignoring first column
+},mc.cores = 6)
+
+
+#Shannon index
+# epd_shannon_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
+#   x %>% 
+#     dplyr::select(-ID_SAMPLE) %>% 
+#     as.matrix() %>% 
+#     vegan::diversity(., index = "shannon") %>% 
+#     dplyr::as_tibble() %>%   
+#     dplyr::mutate(ID_SAMPLE = x$ID_SAMPLE, .before = 1) %>% 
+#     dplyr::rename(shannon = value)
+# }, mc.cores = 6)
+# epd_tree_shannon_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
+#   x %>% 
+#     tidyr::pivot_longer(!c(ID_SAMPLE), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% #re-shape 
+#       dplyr::left_join(dplyr::select(taxa_cat_single, clean_taxon_name, ap_sp_hp), by = "clean_taxon_name") %>%
+#       dplyr::filter(ap_sp_hp == "AP") %>%
+#       dplyr::select(ID_SAMPLE, clean_taxon_name, percentage_cover) %>%
+#       tidyr::pivot_wider(names_from = clean_taxon_name, values_from = percentage_cover) %>%
+#       dplyr::select(-ID_SAMPLE) %>%
+#       as.matrix() %>%
+#       vegan::diversity(., index = "shannon") %>%
+#       dplyr::as_tibble() %>%
+#       dplyr::mutate(ID_SAMPLE = x$ID_SAMPLE, .before = 1) %>%
+#       dplyr::rename(tree_shannon = value)
+# }, mc.cores = 6)
+
+
+#Hills N2 filter
+epd_hillsN2_ls <- parallel::mclapply(epd_pollen_wider_ls, function(x){
+  x %>% 
+    dplyr::select(-ID_SAMPLE) %>% 
+    analogue::n2(., "sites") %>%
+    dplyr::as_tibble() %>%
+    dplyr::rename(HillsN2 = value) %>% 
+    dplyr::mutate(ID_SAMPLE = x$ID_SAMPLE, .before = 1)
+},mc.cores = 6)
+
+
+#AP percentages
+epd_pollen_counts_APinfo_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
+  x %>% 
+    tidyr::pivot_longer(!c(ID_SAMPLE), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
+    dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") 
+},mc.cores = 6)
+
+epd_pollen_ap_per_ls <- parallel::mclapply(epd_pollen_counts_APinfo_ls, function(x){
+  x %>% 
+    dplyr::filter(ap_sp_hp == "AP") %>% #Just AP
+    dplyr::group_by(ID_SAMPLE) %>% 
+    dplyr::summarise(ap_cover = sum(percentage_cover)) %>% 
+    dplyr::ungroup()
+},mc.cores = 6)
+
+
+#Needleshare 
+epd_pollen_ap_needleshare_per_ls1 <- lapply(epd_pollen_counts_APinfo_ls,function(x){
+  x %>%
+    dplyr::filter(ap_sp_hp == "AP") %>%
+    dplyr::mutate(needle = dplyr::if_else(is.na(ap_needle_broad), "unknown", ap_needle_broad)) %>%   #need to remove NA
+    dplyr::filter(needle == "needle") %>%
+    dplyr::group_by(ID_SAMPLE) %>%
+    dplyr::summarise(ap_cover_needle = sum(percentage_cover)) %>%
+    dplyr::ungroup()
+})
+epd_pollen_ap_needleshare_per_ls2 <- purrr::map2(epd_pollen_ap_needleshare_per_ls1, epd_pollen_ap_per_ls, dplyr::left_join)
+epd_pollen_ap_needleshare_per_ls3 <- lapply(epd_pollen_ap_needleshare_per_ls2, function(x){
+  x %>% 
+    dplyr::mutate(needle_share = ap_cover_needle/ap_cover)  %>%
+    dplyr::mutate(needle_share = tidyr::replace_na(needle_share, 0))
+})
+
+
+#SP cover
+epd_pollen_counts_SPinfo_ls <- parallel::mclapply(epd_pollen_wider_per_ls, function(x){
+  x %>% 
+    tidyr::pivot_longer(!c(ID_SAMPLE), names_to = "clean_taxon_name", values_to = "percentage_cover") %>% 
+    dplyr::left_join(taxa_cat_single, by = "clean_taxon_name") 
+}, mc.cores = 6)
+
+epd_pollen_sp_per_ls <- parallel::mclapply(epd_pollen_counts_SPinfo_ls, function(x){
+  x %>% 
+    dplyr::filter(ap_sp_hp == "SP") %>% #Just SP
+    dplyr::group_by(ID_SAMPLE) %>% 
+    dplyr::summarise(sp_cover = sum(percentage_cover)) %>% 
+    dplyr::ungroup()
+}, mc.cores = 6)
+
+
+##Input for downcore
+epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$median
+# epd_shannon <- epd_shannon_ls$median
+# epd_tree_shannon <- epd_tree_shannon_ls$median
+epd_hillsN2 <- epd_hillsN2_ls$median
+epd_pollen_ap_per <- epd_pollen_ap_per_ls$median
+epd_pollen_sp_per <- epd_pollen_sp_per_ls$median
+epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$median
+
+lq_epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$lq
+# lq_epd_shannon <- epd_shannon_ls$lq
+# lq_epd_tree_shannon <- epd_tree_shannon_ls$lq
+lq_epd_hillsN2 <- epd_hillsN2_ls$lq
+lq_epd_pollen_ap_per <- epd_pollen_ap_per_ls$lq
+lq_epd_pollen_sp_per <- epd_pollen_sp_per_ls$lq
+lq_epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$lq
+
+uq_epd_pollen_counts_tps <- epd_pollen_counts_tps_ls$uq
+# uq_epd_shannon <- epd_shannon_ls$uq
+# uq_epd_tree_shannon <- epd_tree_shannon_ls$uq
+uq_epd_hillsN2 <- epd_hillsN2_ls$uq
+uq_epd_pollen_ap_per <- epd_pollen_ap_per_ls$uq
+uq_epd_pollen_sp_per <- epd_pollen_sp_per_ls$uq
+uq_epd_pollen_ap_needleshare_per <- epd_pollen_ap_needleshare_per_ls3$uq
+
+
+epd_downcore_input_ns <- epd_pollen_counts_tps %>% 
+  dplyr::select(ID_SAMPLE, elevation) %>%
+  dplyr::distinct() %>% 
+  # dplyr::left_join(epd_shannon, by = "ID_SAMPLE") %>%
+  # dplyr::left_join(epd_tree_shannon, by = "ID_SAMPLE") %>%
+  dplyr::left_join(epd_hillsN2, by = "ID_SAMPLE") %>% 
+  dplyr::left_join(epd_pollen_ap_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(ap_cover = ap_cover / 100) %>% 
+  dplyr::left_join(epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(sp_cover = sp_cover / 100) %>% 
+  dplyr::left_join(dplyr::select(epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  dplyr::filter(HillsN2 >= 2) %>% #Hills filter
+  dplyr::select(-HillsN2) %>% 
+  dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
+  dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
+  dplyr::select(-site_type)
+
+rio::export(epd_downcore_input_ns, "data/intermediate_output/vegetation/epd_downcore_input_ns.csv")
+
+lq_epd_downcore_input_ns <- lq_epd_pollen_counts_tps %>% 
+  dplyr::select(ID_SAMPLE, elevation) %>%
+  dplyr::distinct() %>% 
+  # dplyr::left_join(lq_epd_shannon, by = "ID_SAMPLE") %>%
+  # dplyr::left_join(lq_epd_tree_shannon, by = "ID_SAMPLE") %>%
+  dplyr::left_join(lq_epd_hillsN2, by = "ID_SAMPLE") %>% 
+  dplyr::left_join(lq_epd_pollen_ap_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(ap_cover = ap_cover / 100) %>% 
+  dplyr::left_join(lq_epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(sp_cover = sp_cover / 100) %>% 
+  dplyr::left_join(dplyr::select(lq_epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  dplyr::filter(HillsN2 >= 2) %>% #Hills filter
+  dplyr::select(-HillsN2) %>% 
+  dplyr::left_join(dplyr::select(lq_pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
+  dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
+  dplyr::select(-site_type)
+
+rio::export(lq_epd_downcore_input_ns, "data/intermediate_output/vegetation/lq_epd_downcore_input_ns.csv")
+
+uq_epd_downcore_input_ns <- uq_epd_pollen_counts_tps %>% 
+  dplyr::select(ID_SAMPLE, elevation) %>%
+  dplyr::distinct() %>% 
+  # dplyr::left_join(uq_epd_shannon, by = "ID_SAMPLE") %>%
+  # dplyr::left_join(uq_epd_tree_shannon, by = "ID_SAMPLE") %>%
+  dplyr::left_join(uq_epd_hillsN2, by = "ID_SAMPLE") %>% 
+  dplyr::left_join(uq_epd_pollen_ap_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(ap_cover = ap_cover / 100) %>% 
+  dplyr::left_join(uq_epd_pollen_sp_per, by = "ID_SAMPLE") %>% 
+  dplyr::mutate(sp_cover = sp_cover / 100) %>% 
+  dplyr::left_join(dplyr::select(uq_epd_pollen_ap_needleshare_per, ID_SAMPLE, needle_share), by = "ID_SAMPLE") %>% 
+  dplyr::filter(HillsN2 >= 2) %>% #Hills filter
+  dplyr::select(-HillsN2) %>% 
+  dplyr::left_join(dplyr::select(uq_pollen_sample_ages, ID_SAMPLE, site_type), by = "ID_SAMPLE") %>% 
+  dplyr::mutate(site_model = dplyr::if_else(site_type == "lake", 1, 0)) %>% 
+  dplyr::select(-site_type)
+
+rio::export(uq_epd_downcore_input_ns, "data/intermediate_output/vegetation/uq_epd_downcore_input_ns.csv")
+
+epd_downcore_input_records_ns <- epd_downcore_input_ns %>% 
+  dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, ID_ENTITY, latitude, longitude, site_type), by = "ID_SAMPLE") %>% 
+  dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) %>% 
+  dplyr::filter(elevation < 1000) %>% #Limit to records below 1000m
+  dplyr::select(ID_ENTITY, latitude, longitude) %>% 
+  dplyr::distinct()
+
+pollen_records2 <- rio::import("data/intermediate_output/vegetation/pollen_records2.csv")
+pollen_records2_filt <- pollen_records2 %>% 
+  dplyr::filter(ID_ENTITY %in% c(ap_tree_cover$ID_ENTITY))
+
+epd_downcore_input_records_vect_ns <- epd_downcore_input_records_ns %>% 
+  sf::st_as_sf(coords = c("longitude", "latitude"), agr = "constant",crs = 4258) %>% 
+  sf::st_transform(crs = 3035) %>% 
+  terra::vect()
+epd_downcore_input_records_buf5k_ns <- epd_downcore_input_records_ns %>% 
+  sf::st_as_sf(coords = c("longitude", "latitude"), agr = "constant",crs = 4258) %>% 
+  sf::st_transform(crs = 3035) %>% 
+  sf::st_buffer(5000)
+epd_downcore_input_records_buf_sourcemedian_ns <- epd_downcore_input_records_ns %>% 
+  sf::st_as_sf(coords = c("longitude", "latitude"), agr = "constant",crs = 4258) %>% 
+  sf::st_transform(crs = 3035) %>% 
+  sf::st_buffer(median(pollen_records2_filt$i0.75))
+
+cop_tree_cover_masked_3035 <-  terra::rast("data/intermediate_output/vegetation/copernicus/cop_masked_tree_cover_3035_100m.tif")
+epd_downcore_input_observedtree_ns <- terra::extract(cop_tree_cover_masked_3035, epd_downcore_input_records_vect_ns)
+epd_downcore_input_observedtree_5k_ns <- exactextractr::exact_extract(cop_tree_cover_masked_3035, epd_downcore_input_records_buf5k_ns, 'mean', force_df = TRUE)
+epd_downcore_input_observedtree_sourcemedian_ns <- exactextractr::exact_extract(cop_tree_cover_masked_3035, epd_downcore_input_records_buf_sourcemedian_ns, 'mean', force_df = TRUE)
+median(epd_downcore_input_observedtree_ns$mean, na.rm = TRUE)
+median(epd_downcore_input_observedtree_5k_ns$mean, na.rm = TRUE)
+median(epd_downcore_input_observedtree_sourcemedian_ns$mean, na.rm = TRUE)
+
+# ---------------------------------------------------------
+
+
+
+
+# 5.4. Reconstructions
+# ---------------------------------------------------------
+# ---------------------------------------------------------
+## Modelled fit
+epd_downcore_input_ls_ns <- list(rio::import("data/intermediate_output/vegetation/epd_downcore_input_ns.csv"),
+                                 rio::import("data/intermediate_output/vegetation/lq_epd_downcore_input_ns.csv"),
+                                 rio::import("data/intermediate_output/vegetation/uq_epd_downcore_input_ns.csv"))
+names(epd_downcore_input_ls_ns) <- c("median", "lq", "uq")
+pred_EPD_tree_ls_ns <- lapply(epd_downcore_input_ls_ns, function(x){
+  betareg::predict(tree_model_ns, newdata = dplyr::select(x, ap_cover, elevation, needle_share, site_model, sp_cover),type="response") #modelled
+})
+
+pred_EPD_tree_refit_ls_ns <- lapply(pred_EPD_tree_ls_ns, function(x){
+  qmap::doQmapSSPLIN(as.numeric(x), tree_qmap_model_ssplin_ns)
+})
+
+recon_tree_ns <- cbind(epd_downcore_input_ls_ns$median, pred_EPD_tree_refit_ls_ns$median)  %>%
+  dplyr::rename(tree_cover = dplyr::last_col()) %>%
+  dplyr::mutate(tree_cover = dplyr::if_else(tree_cover>1, 1, tree_cover)) %>% #Because otherwise we may have re-fitted values greater than 100%
+  dplyr::mutate(tree_cover = 100*tree_cover) %>% 
+  dplyr::left_join(dplyr::select(pollen_sample_ages, ID_SAMPLE, entity_name, latitude, longitude, median, site_type), by = "ID_SAMPLE")  %>% 
+  dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) %>% 
+  dplyr::filter(elevation < 1000) #Limit to records below 1000m
+rio::export(recon_tree_ns, "data/intermediate_output/vegetation/recon_tree_ns.csv")
+
+lq_recon_tree_ns <- cbind(epd_downcore_input_ls_ns$lq, pred_EPD_tree_refit_ls_ns$lq)  %>%
+  dplyr::rename(tree_cover = dplyr::last_col()) %>%
+  dplyr::mutate(tree_cover = dplyr::if_else(tree_cover>1, 1, tree_cover)) %>% #Because otherwise we may have re-fitted values greater than 100%
+  dplyr::mutate(tree_cover = 100*tree_cover) %>% 
+  dplyr::left_join(dplyr::select(lq_pollen_sample_ages, ID_SAMPLE, entity_name, latitude, longitude, lowerq, site_type), by = "ID_SAMPLE")  %>% 
+  dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) %>% 
+  dplyr::filter(elevation < 1000) #Limit to records below 1000m
+rio::export(lq_recon_tree_ns, "data/intermediate_output/vegetation/lq_recon_tree_ns.csv")
+
+uq_recon_tree_ns <- cbind(epd_downcore_input_ls_ns$uq, pred_EPD_tree_refit_ls_ns$uq)  %>%
+  dplyr::rename(tree_cover = dplyr::last_col()) %>%
+  dplyr::mutate(tree_cover = dplyr::if_else(tree_cover>1, 1, tree_cover)) %>% #Because otherwise we may have re-fitted values greater than 100%
+  dplyr::mutate(tree_cover = 100*tree_cover) %>% 
+  dplyr::left_join(dplyr::select(uq_pollen_sample_ages, ID_SAMPLE, entity_name, latitude, longitude, upperq, site_type), by = "ID_SAMPLE")  %>% 
+  dplyr::filter(site_type %in% c("lake", "terrestrial bog/mire/fen", "terrestrial, blanket bog", "terrestrial, bog/fen/swamp", "terrestrial, bog/lake", "terrestrial, bog/mire/fen", "terrestrial, marsh")) %>% 
+  dplyr::filter(elevation < 1000) #Limit to records below 1000m
+rio::export(uq_recon_tree_ns, "data/intermediate_output/vegetation/uq_recon_tree_ns.csv")
+
+ap_cover_tree_ns <- recon_tree_ns %>% 
+  dplyr::mutate(tree_cover = ap_cover*100) #convert to ap cover subsequent analysis
+rio::export(ap_cover_tree_ns, "data/intermediate_output/vegetation/ap_cover_tree_ns.csv")
+
+#Bin data into 200yrs bins
+recon_tree_ls_ns <- list(recon_tree_ns, lq_recon_tree_ns, uq_recon_tree_ns, ap_cover_tree_ns)
+names(recon_tree_ls_ns) <- c("median", "lq", "uq", "ap")
+
+recon_tree_binned_200_ls_ns <- lapply(recon_tree_ls_ns, function(x){
+  x %>% 
+    dplyr::rename(date_value = 11) %>% 
+    dplyr::mutate(bin = ggplot2::cut_width(date_value, width = 200, center = 0, labels = F)) %>%    #place in 200 year bins
+    dplyr::mutate(bin_age = (bin * 200) - 200) %>%
+    dplyr::filter(bin_age <=14000)  %>% 
+    dplyr::group_by(entity_name, bin_age) %>% 
+    dplyr::summarise(tree_cover = mean(tree_cover), number = n()) %>%
+    dplyr::ungroup() %>%
+    dplyr::left_join(dplyr::select(pollen_sample_ages, entity_name, latitude, longitude), by = "entity_name") %>% 
+    dplyr::distinct()
+})
+
+bin_200_mean_recon_tree_ls_ns <- lapply(recon_tree_binned_200_ls_ns, function(x){ #Calculate mean through time
+  x %>% 
+    dplyr::group_by(bin_age) %>% 
+    dplyr::summarise(tree_cover_mean = mean(tree_cover), tree_cover_sd = sd(tree_cover)) %>% 
+    dplyr::ungroup()
+}) 
+
+bin_200_median_recon_tree_ls_ns <- lapply(recon_tree_binned_200_ls_ns, function(x){ #Calculate median through time
+  x %>% 
+    dplyr::group_by(bin_age) %>% 
+    dplyr::summarise(tree_cover_median = median(tree_cover), tree_cover_lower = quantile(tree_cover,probs = c(0.25)),tree_cover_higher = quantile(tree_cover,probs = c(0.75))) %>% 
+    dplyr::ungroup()
+}) 
+
+bin_200_max_recon_tree_ls_ns <- lapply(recon_tree_binned_200_ls_ns, function(x){ #Calculate max through time
+  x %>% 
+    dplyr::group_by(bin_age) %>% 
+    dplyr::summarise(tree_cover_max = max(tree_cover)) %>% 
+    dplyr::ungroup()
+}) 
+
+bin_200_n_recon_tree_ls_ns <- lapply(recon_tree_binned_200_ls_ns, function(x){ #Calculate number through time
+  x %>% 
+    dplyr::select(-tree_cover, -number) %>% 
+    dplyr::distinct() %>% 
+    dplyr::group_by(bin_age) %>% 
+    dplyr::summarise(number_records = n()) %>% 
+    dplyr::ungroup()
+}) 
+
+rio::export(recon_tree_binned_200_ls_ns$median, "data/intermediate_output/vegetation/recon_tree_binned_200_ns.csv")
+rio::export(bin_200_mean_recon_tree_ls_ns$median, "data/intermediate_output/vegetation/bin_200_mean_recon_tree_ns.csv")
+rio::export(bin_200_median_recon_tree_ls_ns$median, "data/intermediate_output/vegetation/bin_200_median_recon_tree_ns.csv")
+rio::export(bin_200_max_recon_tree_ls_ns$median, "data/intermediate_output/vegetation/bin_200_max_recon_tree_ns.csv")
+rio::export(bin_200_n_recon_tree_ls_ns$median, "data/intermediate_output/vegetation/bin_200_n_recon_tree_ns.csv")
+
+rio::export(recon_tree_binned_200_ls_ns$lq, "data/intermediate_output/vegetation/lq_recon_tree_binned_200_ns.csv")
+rio::export(bin_200_mean_recon_tree_ls_ns$lq, "data/intermediate_output/vegetation/lq_bin_200_mean_recon_tree_ns.csv")
+rio::export(bin_200_median_recon_tree_ls_ns$lq, "data/intermediate_output/vegetation/lq_bin_200_median_recon_tree_ns.csv")
+rio::export(bin_200_max_recon_tree_ls_ns$lq, "data/intermediate_output/vegetation/lq_bin_200_max_recon_tree_ns.csv")
+rio::export(bin_200_n_recon_tree_ls_ns$lq, "data/intermediate_output/vegetation/lq_bin_200_n_recon_tree_ns.csv")
+
+rio::export(recon_tree_binned_200_ls_ns$uq, "data/intermediate_output/vegetation/uq_recon_tree_binned_200_ns.csv")
+rio::export(bin_200_mean_recon_tree_ls_ns$uq, "data/intermediate_output/vegetation/uq_bin_200_mean_recon_tree_ns.csv")
+rio::export(bin_200_median_recon_tree_ls_ns$uq, "data/intermediate_output/vegetation/uq_bin_200_median_recon_tree_ns.csv")
+rio::export(bin_200_max_recon_tree_ls_ns$uq, "data/intermediate_output/vegetation/uq_bin_200_max_recon_tree_ns.csv")
+rio::export(bin_200_n_recon_tree_ls_ns$uq, "data/intermediate_output/vegetation/uq_bin_200_n_recon_tree_ns.csv")
+
+rio::export(recon_tree_binned_200_ls_ns$ap, "data/intermediate_output/vegetation/ap_tree_binned_200_ns.csv")
+rio::export(bin_200_mean_recon_tree_ls_ns$ap, "data/intermediate_output/vegetation/bin_200_mean_ap_tree_ns.csv")
+rio::export(bin_200_median_recon_tree_ls_ns$ap, "data/intermediate_output/vegetation/bin_200_median_ap_tree_ns.csv")
+rio::export(bin_200_max_recon_tree_ls_ns$ap, "data/intermediate_output/vegetation/bin_200_max_ap_tree_ns.csv")
+rio::export(bin_200_n_recon_tree_ls_ns$ap, "data/intermediate_output/vegetation/bin_200_n_ap_tree_ns.csv")
+
+
+##Reconstruction analysis
+recon_tree_ns <- rio::import("data/intermediate_output/vegetation/recon_tree_ns.csv")
+recon_tree_binned_200_ns <- recon_tree_binned_200_ls_ns$median
+bin_200_mean_recon_tree_ns <- bin_200_mean_recon_tree_ls_ns$median
+bin_200_median_recon_tree_ns <- bin_200_median_recon_tree_ls_ns$median
+bin_200_max_recon_tree_ns <- bin_200_max_recon_tree_ls_ns$median
+bin_200_n_recon_tree_ns <- bin_200_n_recon_tree_ls_ns$median
+
+binned_200yr_reconstructions_ns <- recon_tree_binned_200_ns %>% 
+  dplyr::rename(bin_centre = bin_age, number_samples = number) %>% 
+  dplyr::select(entity_name, longitude, latitude, bin_centre, number_samples, tree_cover)
+rio::export(binned_200yr_reconstructions_ns, "figs/binned_200yr_reconstructions_ns.csv")
+
+#Bootstraps medians
+nrecords_ns <- length(unique(recon_tree_binned_200_ns$entity_name)) #Number of records
+recon_tree_binned_200_records_ns <- recon_tree_binned_200_ns %>% #Add row number of each entity
+  dplyr::select(entity_name) %>% 
+  dplyr::distinct() %>% 
+  dplyr::mutate(entity_row = dplyr::row_number())
+recon_tree_binned_200_num_ns <- recon_tree_binned_200_ns %>% 
+  dplyr::left_join(recon_tree_binned_200_records_ns, by = "entity_name")
+
+boot_ls_ns <- list()
+set.seed(42)
+nreps <- 1000 #number of reps
+for (i in 1:nreps){ #generate list of boostrapped resampled dfs
+  print(i)
+  record_boot_ns <- sample(seq(1:nrecords_ns), nrecords_ns, replace = TRUE) #select records, with replacement
+  bin_200_recon_tree_boot_ns <- dplyr::tibble(entity_row = record_boot_ns) %>% 
+    dplyr::left_join(recon_tree_binned_200_num_ns, by = "entity_row", relationship = "many-to-many") %>% #add info by entity
+    dplyr::group_by(bin_age) %>% 
+    dplyr::summarise(tree_cover_mean = mean(tree_cover), tree_cover_median = median(tree_cover),tree_cover_max = max(tree_cover) ) %>% #calculate bin mean, median and max
+    dplyr::ungroup() 
+  boot_ls_ns[[i]] <- bin_200_recon_tree_boot_ns #add to list
+}
+bin_200_recon_tree_boots_ns <- dplyr::bind_rows(boot_ls_ns, .id = "column_label") #reduce to single df
+rio::export(bin_200_recon_tree_boots_ns, "data/intermediate_output/vegetation/bin_200_recon_tree_boots_ns.csv")
+
+bin_200_recon_tree_boots_5_95_ns <- bin_200_recon_tree_boots_ns %>% #Calculate 95% CIs
+  dplyr::group_by(bin_age) %>% 
+  dplyr::summarise(tree_cover_lower_mean = quantile(tree_cover_mean,probs = c(0.025)),
+                   tree_cover_higher_mean = quantile(tree_cover_mean,probs = c(0.975)),
+                   tree_cover_lower_median = quantile(tree_cover_median,probs = c(0.025)),
+                   tree_cover_higher_median = quantile(tree_cover_median,probs = c(0.975)),
+                   tree_cover_lower_max = quantile(tree_cover_max,probs = c(0.025)),
+                   tree_cover_higher_max = quantile(tree_cover_max,probs = c(0.975)),
+  ) %>% 
+  dplyr::ungroup()  %>% 
+  tidyr::pivot_longer(!bin_age, names_to = "lower_upper", values_to = "tree_cover_5_95") %>%  
+  dplyr::mutate(column_label = dplyr::if_else(stringr::str_detect(lower_upper, "tree_cover_lower"), nreps+2, nreps+3)) #need to add for plotting
+rio::export(bin_200_recon_tree_boots_5_95_ns, "data/intermediate_output/vegetation/bin_200_recon_tree_boots_5_95_ns.csv")
+
+bin_200_mean_recon_tree_plot_ns <- bin_200_mean_recon_tree_ns %>% 
+  dplyr::mutate(column_label = nreps+1)
+rio::export(bin_200_mean_recon_tree_plot_ns, "data/intermediate_output/vegetation/bin_200_mean_recon_tree_plot_ns.csv")
+
+bin_200_median_recon_tree_plot_ns <- bin_200_median_recon_tree_ns %>% 
+  dplyr::mutate(column_label = nreps+1) #need to include within plot
+rio::export(bin_200_median_recon_tree_plot_ns, "data/intermediate_output/vegetation/bin_200_median_recon_tree_plot_ns.csv")
+
+bin_200_max_recon_tree_plot_ns <- bin_200_max_recon_tree_ns %>% 
+  dplyr::mutate(column_label = nreps+1)
+rio::export(bin_200_max_recon_tree_plot_ns, "data/intermediate_output/vegetation/bin_200_max_recon_tree_plot_ns.csv")
+
+bin_200_recon_tree_boots_5_95_mean_ns <- bin_200_recon_tree_boots_5_95_ns %>% 
+  dplyr::filter(stringr::str_detect(lower_upper, "mean"))
+rio::export(bin_200_recon_tree_boots_5_95_mean_ns, "data/intermediate_output/vegetation/bin_200_recon_tree_boots_5_95_mean_ns.csv")
+
+bin_200_recon_tree_boots_5_95_median_ns <- bin_200_recon_tree_boots_5_95_ns %>% 
+  dplyr::filter(stringr::str_detect(lower_upper, "median"))
+rio::export(bin_200_recon_tree_boots_5_95_median_ns, "data/intermediate_output/vegetation/bin_200_recon_tree_boots_5_95_median_ns.csv")
+
+bin_200_recon_tree_boots_5_95_max_ns <- bin_200_recon_tree_boots_5_95_ns %>% 
+  dplyr::filter(stringr::str_detect(lower_upper, "max"))
+rio::export(bin_200_recon_tree_boots_5_95_max_ns, "data/intermediate_output/vegetation/bin_200_recon_tree_boots_5_95_max_ns.csv")
 
 

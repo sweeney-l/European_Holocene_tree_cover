@@ -83,6 +83,7 @@ library(tidyverse)
 #         /2018                     : landcover data from https://zenodo.org/records/3518038
 #         /2019                     : landcover data from https://zenodo.org/records/3939050
 #       /EEA_bioregions             : biogeographical regions map from https://www.eea.europa.eu/data-and-maps/figures/biogeographical-regions-in-europe-2
+#       /Hengl                      : potential natural vegetation map from https://zenodo.org/records/10513520 
 #       /Serge                      
 #         /TERRA_RVresults_RPPs.st1 
 #           /RV_mean_RPPs.st1       : Serge et al. (2023) mean vegetation data from https://data.indores.fr/dataset.xhtml?persistentId=doi:10.48579/PRO/J5GZUO
@@ -97,6 +98,7 @@ library(tidyverse)
 #         /3035                     : crs 3035 shapefile
 #         /4258                     : crs 4258 shapefile
 #         /4326                     : crs 4326 shapefile
+#       /hengl                      : european pnv, crs 3035
 #       /SMPDS                      : adjusted modern pollen data
 #       /raster_tree                : adjusted modern pollen data
 # /figs                             : figures/tables outputted from the analysis
@@ -119,6 +121,7 @@ library(tidyverse)
 # dir.create("data/input/copernicus_frac_cover/2018")
 # dir.create("data/input/copernicus_frac_cover/2019")
 # dir.create("data/input/EEA_bioregions")
+# dir.create("data/input/Hengl")
 # dir.create("data/input/Serge")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1")
 # dir.create("data/input/Serge/TERRA_RVresults_RPPs.st1/RV_mean_RPPs.st1")
@@ -130,6 +133,7 @@ library(tidyverse)
 # dir.create("data/intermediate_output/vegetation")
 # dir.create("data/intermediate_output/vegetation/copernicus")
 # dir.create("data/intermediate_output/vegetation/euro_map")
+# dir.create("data/intermediate_output/vegetation/hengl")
 # dir.create("data/intermediate_output/vegetation/SMPDS")
 # dir.create("data/intermediate_output/vegetation/raster_tree")
 # dir.create("figs")
@@ -218,10 +222,12 @@ rio::export(pollen_records, "data/intermediate_output/vegetation/pollen_records_
 # Prentice's forumula calculated the 70% characteristic source as: (radius of basin^(1/8) - (ln 0.3/bi))^(1/1/8).
 # Radius is calculated as (basin area / pi)^(1/2)
 
-#Function to calculate appropriate source area
+#Function to calculate appropriate source area - note be careful. If selecting different radius, also change at lines: 242,332,335,399,405,444,450 
 f_buffer <- function(data,b,area){
   data_out <- data %>% 
   dplyr::mutate("i{{b}}" := (((1000000*area/pi)^(1/2))^(0.125) - (log(0.3)/b))^(1/0.125)) #need to convert area to m; epsilon 0.3 (i.e 70% radius)
+  # dplyr::mutate("i{{b}}" := (((1000000*area/pi)^(1/2))^(0.125) - (log(0.5)/b))^(1/0.125)) #need to convert area to m; epsilon 0.5 (i.e 50% radius)
+  # dplyr::mutate("i{{b}}" := (((1000000*area/pi)^(1/2))^(0.125) - (log(0.65)/b))^(1/0.125)) #need to convert area to m; epsilon 0.65 (i.e 35% radius)
   assign(paste0("pollen_buffer_", b), data_out, envir = parent.frame()) #store output
 }
 
@@ -234,6 +240,8 @@ pollen_buffer_variable <- pollen_buffer_0.75 %>% #Merge information for each FSP
   dplyr::mutate(basin_radius = (basin_size/pi)^(1/2), .before = i0.75) #km, add basin radius
 
 rio::export(pollen_buffer_variable, "data/intermediate_output/vegetation/pollen_buffer_variable.xlsx")
+# rio::export(pollen_buffer_variable, "data/intermediate_output/vegetation/pollen_buffer_variable_50pol.xlsx") #save after running and adjusting f_buffer
+# rio::export(pollen_buffer_variable, "data/intermediate_output/vegetation/pollen_buffer_variable_35pol.xlsx") #save after running and adjusting f_buffer
 
 # ---------------------------------------------------------
 
@@ -320,6 +328,12 @@ rm(tree_shannon3,tree_shannon2,tree_shannon1,tree_shannon)
 # ---------------------------------------------------------
 
 #Pollen from SMPDS analysis
+pollen_single <- rio::import("data/intermediate_output/vegetation/pollen_single.csv")
+pollen_buffer_variable <- rio::import("data/intermediate_output/vegetation/pollen_buffer_variable.xlsx")
+# pollen_buffer_variable <- rio::import("data/intermediate_output/vegetation/pollen_buffer_variable_50pol.xlsx") #different pollen percentages
+# pollen_buffer_variable <- rio::import("data/intermediate_output/vegetation/pollen_buffer_variable_35pol.xlsx") #different pollen percentages
+
+
 pollen2 <- pollen_single %>% 
   dplyr::left_join(dplyr::select(pollen_buffer_variable, ID_ENTITY, i0.75), by = c("ID_ENTITY")) %>% #Incorporate basin size info
   dplyr::distinct() #To ensure no clear duplicates
@@ -329,6 +343,8 @@ pollen_records2 <- pollen2 %>% #Get site based info about long and lat. Needed b
   dplyr::arrange(ID_ENTITY)  #Standardise ordering
 
 rio::export(pollen_records2, "data/intermediate_output/vegetation/pollen_records2.csv")
+# rio::export(pollen_records2, "data/intermediate_output/vegetation/pollen_records2_50pol.csv") #different pollen percentages
+# rio::export(pollen_records2, "data/intermediate_output/vegetation/pollen_records2_35pol.csv") #different pollen percentages
 
 pollen_records_xy <- pollen_records2 %>% #To use in extraction
   sf::st_as_sf(coords = c("longitude", "latitude"), agr = "constant",crs = 4258)
@@ -381,7 +397,15 @@ pollen_records_xy_buffer4 <- pollen_records_xy3 %>% #variable buffer
   sf::st_as_sf(crs = 3035) #Ensure in sf
 
 saveRDS(pollen_records_xy_buffer4, "data/intermediate_output/vegetation/pollen_records_xy_buffer4.rds")
+# saveRDS(pollen_records_xy_buffer4, "data/intermediate_output/vegetation/pollen_records_xy_buffer4_50pol.rds") #pollen percentage
+# saveRDS(pollen_records_xy_buffer4, "data/intermediate_output/vegetation/pollen_records_xy_buffer4_35pol.rds") #pollen percentage
+
+
+pollen_single_per <- rio::import("data/intermediate_output/vegetation/pollen_single_per.csv")
 pollen_records_xy_buffer4 <- readRDS("data/intermediate_output/vegetation/pollen_records_xy_buffer4.rds")
+# pollen_records_xy_buffer4 <- readRDS("data/intermediate_output/vegetation/pollen_records_xy_buffer4_50pol.rds") #be careful!
+# pollen_records_xy_buffer4 <- readRDS("data/intermediate_output/vegetation/pollen_records_xy_buffer4_35pol.rds") #be careful!
+
 
 pollen_records_xy_buffer4_area <- sf::st_area(pollen_records_xy_buffer4) %>% 
   dplyr::as_tibble()
@@ -418,10 +442,14 @@ cop_tree_cover_masked_3035 <-  terra::rast("data/intermediate_output/vegetation/
 
 na_prop_extracted <- f_extract_na_prop(cop_tree_cover_masked_3035)
 rio::export(na_prop_extracted, "data/intermediate_output/vegetation/na_prop_extracted.csv")
+# rio::export(na_prop_extracted, "data/intermediate_output/vegetation/na_prop_extracted_50pol.csv")
+# rio::export(na_prop_extracted, "data/intermediate_output/vegetation/na_prop_extracted_35pol.csv")
 rm(na_prop_extracted)
 
 mean_extracted <- f_extract_veg_mean(cop_tree_cover_masked_3035)
 rio::export(mean_extracted, "data/intermediate_output/vegetation/mean_extracted.csv")
+# rio::export(mean_extracted, "data/intermediate_output/vegetation/mean_extracted_50pol.csv")
+# rio::export(mean_extracted, "data/intermediate_output/vegetation/mean_extracted_35pol.csv")
 rm(mean_extracted)
 
 #All pollen
@@ -432,6 +460,170 @@ pollen_extracted_info <- pollen_single_per %>% #start with pollen info with basi
   dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
   dplyr::left_join(dplyr::select(mean_extracted, -c(latitude, longitude)), by = "ID_ENTITY") %>%
   dplyr::left_join(na_prop_extracted, by = "ID_ENTITY") 
-
 rio::export(pollen_extracted_info, "data/intermediate_output/vegetation/pollen_extracted_info.csv")
 
+mean_extracted_50pol <- rio::import("data/intermediate_output/vegetation/mean_extracted_50pol.csv")
+na_prop_extracted_50pol <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_50pol.csv")
+
+pollen_extracted_info_50pol <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_50pol, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_50pol, by = "ID_ENTITY") 
+rio::export(pollen_extracted_info_50pol, "data/intermediate_output/vegetation/pollen_extracted_info_50pol.csv")
+
+mean_extracted_35pol <- rio::import("data/intermediate_output/vegetation/mean_extracted_35pol.csv")
+na_prop_extracted_35pol <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_35pol.csv")
+
+pollen_extracted_info_35pol <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_35pol, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_35pol, by = "ID_ENTITY") 
+rio::export(pollen_extracted_info_35pol, "data/intermediate_output/vegetation/pollen_extracted_info_35pol.csv")
+
+
+#Load in raster with crop cover not excluded for extraction
+cop_tree_cover_masked_not_crop_3035 <-  terra::rast("data/intermediate_output/vegetation/copernicus/cop_masked_not_crop_tree_cover_3035_100m.tif") #masked tree cover
+crop_cover_max_3035 <- terra::rast("data/intermediate_output/vegetation/copernicus/crop_cover_max_3035.tif") #crop cover
+
+na_prop_extracted_not_crop <- f_extract_na_prop(cop_tree_cover_masked_not_crop_3035)
+rio::export(na_prop_extracted_not_crop, "data/intermediate_output/vegetation/na_prop_extracted_not_crop.csv")
+rm(na_prop_extracted_not_crop)
+
+mean_extracted_not_crop <- f_extract_veg_mean(cop_tree_cover_masked_not_crop_3035) 
+rio::export(mean_extracted_not_crop, "data/intermediate_output/vegetation/mean_extracted_not_crop.csv")
+rm(mean_extracted_not_crop)
+
+mean_extracted_crop_cover <- f_extract_veg_mean(crop_cover_max_3035) #include values for crop cover
+mean_extracted_crop_cover <- mean_extracted_crop_cover %>% 
+  dplyr::select(mean, ID_ENTITY) %>% 
+  dplyr::rename(crop = mean)
+rio::export(mean_extracted_crop_cover, "data/intermediate_output/vegetation/mean_extracted_crop_cover.csv")
+rm(mean_extracted_crop_cover)
+
+#All pollen with crop cover not masked
+mean_extracted_not_crop <- rio::import("data/intermediate_output/vegetation/mean_extracted_not_crop.csv")
+na_prop_extracted_not_crop <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_not_crop.csv")
+mean_extracted_crop_cover <- rio::import("data/intermediate_output/vegetation/mean_extracted_crop_cover.csv")
+
+pollen_extracted_info_not_crop <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_not_crop, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_not_crop, by = "ID_ENTITY") %>% 
+  dplyr::left_join(mean_extracted_crop_cover, by = "ID_ENTITY")
+
+rio::export(pollen_extracted_info_not_crop, "data/intermediate_output/vegetation/pollen_extracted_info_not_crop.csv")
+
+
+
+#load in raster with crop 0.75 - less restrictive for crops than other land classes (i.e. crop needs to be >75% to be excluded)
+cop_tree_cover_masked_crop0.75_3035 <-  terra::rast("data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.75_3035_100m.tif") #masked tree cover
+
+na_prop_extracted_crop0.75 <- f_extract_na_prop(cop_tree_cover_masked_crop0.75_3035)
+rio::export(na_prop_extracted_crop0.75, "data/intermediate_output/vegetation/na_prop_extracted_crop0.75.csv")
+rm(na_prop_extracted_crop0.75)
+
+mean_extracted_crop0.75 <- f_extract_veg_mean(cop_tree_cover_masked_crop0.75_3035) 
+rio::export(mean_extracted_crop0.75, "data/intermediate_output/vegetation/mean_extracted_crop0.75.csv")
+rm(mean_extracted_crop0.75)
+
+#All pollen with crop cover 0.75
+mean_extracted_crop0.75 <- rio::import("data/intermediate_output/vegetation/mean_extracted_crop0.75.csv")
+na_prop_extracted_crop0.75 <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_crop0.75.csv")
+
+pollen_extracted_info_crop0.75 <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_crop0.75, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_crop0.75, by = "ID_ENTITY") 
+
+rio::export(pollen_extracted_info_crop0.75, "data/intermediate_output/vegetation/pollen_extracted_info_crop0.75.csv")
+
+
+
+#load in raster with crop 0.65
+cop_tree_cover_masked_crop0.65_3035 <-  terra::rast("data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.65_3035_100m.tif") #masked tree cover
+
+na_prop_extracted_crop0.65 <- f_extract_na_prop(cop_tree_cover_masked_crop0.65_3035)
+rio::export(na_prop_extracted_crop0.65, "data/intermediate_output/vegetation/na_prop_extracted_crop0.65.csv")
+rm(na_prop_extracted_crop0.65)
+
+mean_extracted_crop0.65 <- f_extract_veg_mean(cop_tree_cover_masked_crop0.65_3035) 
+rio::export(mean_extracted_crop0.65, "data/intermediate_output/vegetation/mean_extracted_crop0.65.csv")
+rm(mean_extracted_crop0.65)
+
+#All pollen with crop cover 0.65
+mean_extracted_crop0.65 <- rio::import("data/intermediate_output/vegetation/mean_extracted_crop0.65.csv")
+na_prop_extracted_crop0.65 <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_crop0.65.csv")
+
+pollen_extracted_info_crop0.65 <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_crop0.65, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_crop0.65, by = "ID_ENTITY") 
+
+rio::export(pollen_extracted_info_crop0.65, "data/intermediate_output/vegetation/pollen_extracted_info_crop0.65.csv")
+
+
+#load in raster with crop 0.85
+cop_tree_cover_masked_crop0.85_3035 <-  terra::rast("data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.85_3035_100m.tif") #masked tree cover
+
+na_prop_extracted_crop0.85 <- f_extract_na_prop(cop_tree_cover_masked_crop0.85_3035)
+rio::export(na_prop_extracted_crop0.85, "data/intermediate_output/vegetation/na_prop_extracted_crop0.85.csv")
+rm(na_prop_extracted_crop0.85)
+
+mean_extracted_crop0.85 <- f_extract_veg_mean(cop_tree_cover_masked_crop0.85_3035) 
+rio::export(mean_extracted_crop0.85, "data/intermediate_output/vegetation/mean_extracted_crop0.85.csv")
+rm(mean_extracted_crop0.85)
+
+#All pollen with crop cover 0.85
+mean_extracted_crop0.85 <- rio::import("data/intermediate_output/vegetation/mean_extracted_crop0.85.csv")
+na_prop_extracted_crop0.85 <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_crop0.85.csv")
+
+pollen_extracted_info_crop0.85 <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_crop0.85, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_crop0.85, by = "ID_ENTITY") 
+
+rio::export(pollen_extracted_info_crop0.85, "data/intermediate_output/vegetation/pollen_extracted_info_crop0.85.csv")
+
+#load in raster with crop 0.85 - more restrictive, if crop above 25% excluded
+cop_tree_cover_masked_crop0.25_3035 <-  terra::rast("data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.25_3035_100m.tif") #masked tree cover
+
+na_prop_extracted_crop0.25 <- f_extract_na_prop(cop_tree_cover_masked_crop0.25_3035)
+rio::export(na_prop_extracted_crop0.25, "data/intermediate_output/vegetation/na_prop_extracted_crop0.25.csv")
+rm(na_prop_extracted_crop0.25)
+
+mean_extracted_crop0.25 <- f_extract_veg_mean(cop_tree_cover_masked_crop0.25_3035) 
+rio::export(mean_extracted_crop0.25, "data/intermediate_output/vegetation/mean_extracted_crop0.25.csv")
+rm(mean_extracted_crop0.25)
+
+#All pollen with crop cover 25%
+mean_extracted_crop0.25 <- rio::import("data/intermediate_output/vegetation/mean_extracted_crop0.25.csv")
+na_prop_extracted_crop0.25 <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_crop0.25.csv")
+
+pollen_extracted_info_crop0.25 <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_crop0.25, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_crop0.25, by = "ID_ENTITY") 
+
+rio::export(pollen_extracted_info_crop0.25, "data/intermediate_output/vegetation/pollen_extracted_info_crop0.25.csv")
+
+#load in raster with crop 0.35
+cop_tree_cover_masked_crop0.35_3035 <-  terra::rast("data/intermediate_output/vegetation/copernicus/cop_tree_cover_masked_crop0.35_3035_100m.tif") #masked tree cover
+
+na_prop_extracted_crop0.35 <- f_extract_na_prop(cop_tree_cover_masked_crop0.35_3035)
+rio::export(na_prop_extracted_crop0.35, "data/intermediate_output/vegetation/na_prop_extracted_crop0.35.csv")
+rm(na_prop_extracted_crop0.35)
+
+mean_extracted_crop0.35 <- f_extract_veg_mean(cop_tree_cover_masked_crop0.35_3035) 
+rio::export(mean_extracted_crop0.35, "data/intermediate_output/vegetation/mean_extracted_crop0.35.csv")
+rm(mean_extracted_crop0.35)
+
+#All pollen with crop cover 0.35
+mean_extracted_crop0.35 <- rio::import("data/intermediate_output/vegetation/mean_extracted_crop0.35.csv")
+na_prop_extracted_crop0.35 <- rio::import("data/intermediate_output/vegetation/na_prop_extracted_crop0.35.csv")
+
+pollen_extracted_info_crop0.35 <- pollen_single_per %>% #start with pollen info with basin values  
+  dplyr::left_join(pollen_single, by = "ID_ENTITY") %>% 
+  dplyr::left_join(dplyr::select(mean_extracted_crop0.35, -c(latitude, longitude)), by = "ID_ENTITY") %>%
+  dplyr::left_join(na_prop_extracted_crop0.35, by = "ID_ENTITY") 
+
+rio::export(pollen_extracted_info_crop0.35, "data/intermediate_output/vegetation/pollen_extracted_info_crop0.35.csv")

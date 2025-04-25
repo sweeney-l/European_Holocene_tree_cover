@@ -1,320 +1,320 @@
-taxon_name,clean_taxon_name,terrestrial_pollen_sum,ap_sp_hp,ap_needle_broad,europe
-Abies,Abies,yes,AP,needle,native
-Acacia,Acacia,yes,not_native,not_native_tree,not native to Europe
-Acanthaceae,Acanthaceae,yes,SP,not_native_tree,native
-Acer,Acer,yes,AP,broad,native
-Aconitum,Aconitum,yes,HP,not_native_tree,native
-Cimicifuga,Actaea,yes,HP,not_native_tree,native
-Actinidiaceae,Actinidiaceae,yes,not_native,not_native_tree,not native to Europe
-Aesculus,Aesculus,yes,AP,broad,native
-Ailanthus,Ailanthus,yes,not_native,not_native_tree,not native to Europe
-Aizoaceae,Aizoaceae,yes,HP,not_native_tree,native
-Alnus,Alnus,yes,AP,broad,native
-Alnus subgen Alnus,Alnus,yes,AP,broad,native
-Alnus subgen Alnobetula,Alnus subg. Alnobetula,yes,AP,broad,native
-Amaranthaceae,Amaranthaceae,yes,HP,not_native_tree,native
-Amaryllidaceae,Amaryllidaceae,yes,HP,not_native_tree,native
-Amorpha,Amorpha,yes,not_native,not_native_tree,not native to Europe
-Andromeda,Andromeda,yes,SP,not_native_tree,native
-Apiaceae,Apiaceae,yes,SP,not_native_tree,native
-Apocynaceae,Apocynaceae,yes,HP,not_native_tree,native
-Aquilegia,Aquilegia,yes,HP,not_native_tree,native
-Araceae,Araceae,yes,HP,not_native_tree,native
-Arbutus,Arbutus,yes,AP,broad,native
-Arctostaphylos,Arctostaphylos,yes,not_native,not_native_tree,not native to Europe
-Arecaceae,Arecaceae,yes,AP,broad,native
-Aristolochiaceae,Aristolochiaceae,yes,SP,not_native_tree,native
-Artemisia,Artemisia,yes,SP,not_native_tree,native
-Asparagaceae,Asparagaceae,yes,SP,not_native_tree,native
-Asphodelaceae,Asphodelaceae,yes,HP,not_native_tree,native
-Asteraceae,Asteraceae,yes,HP,not_native_tree,native
-Asteraceae (Liguliflorae),Asteraceae (Liguliflorae),yes,HP,not_native_tree,native
-Asteroideae,Asteroideae,yes,HP,not_native_tree,native
-Astragalus,Astragalus,yes,SP,not_native_tree,native
-Berberidaceae,Berberidaceae,yes,SP,not_native_tree,native
-Berberis,Berberis,yes,SP,not_native_tree,native
-Betula,Betula,yes,AP,broad,native
-Betula (Chamaebetula),Betula chamaebetula,yes,AP,broad,native
-Bifaria,Bifaria,yes,not_native,not_native_tree,not native to Europe
-Boraginaceae,Boraginaceae,yes,HP,not_native_tree,native
-Brassicaceae,Brassicaceae,yes,HP,not_native_tree,native
-Buddleia,Buddleia,yes,SP,not_native_tree,native
-Buxus,Buxus,yes,AP,broad,native
-Calicotome,Calicotome,yes,SP,not_native_tree,native
-Calluna,Calluna,yes,SP,not_native_tree,native
-Camellia,Camellia,yes,not_native,not_native_tree,not native to Europe
-Campanulaceae,Campanulaceae,yes,HP,not_native_tree,native
-Cannabaceae (trees),Cannabaceae,yes,HP,not_native_tree,native
-Capparaceae,Capparaceae,yes,SP,not_native_tree,native
-Caprifoliaceae,Caprifoliaceae,yes,SP,not_native_tree,native
-Valerianaceae,Caprifoliaceae,yes,SP,not_native_tree,native
-Carduoideae,Carduoideae,yes,HP,not_native_tree,native
-Carpinus,Carpinus,yes,AP,broad,native
-Carpinus betulus,Carpinus betulus,yes,AP,broad,native
-Carpinus orientalis/Ostrya,Carpinus orientalis/Ostrya,yes,AP,broad,native
-Carya,Carya,yes,not_native,not_native_tree,not native to Europe
-Caryophyllaceae,Caryophyllaceae,yes,HP,not_native_tree,native
-Cassiope,Cassiope,yes,SP,not_native_tree,native
-Castanea,Castanea,yes,AP,broad,native
-Cedrus,Cedrus,yes,AP,needle,native
-Celastraceae,Celastraceae,yes,HP,not_native_tree,native
-Celtis,Celtis,yes,AP,broad,native
-Ceratonia,Ceratonia,yes,AP,broad,native
-Cercis,Cercis,yes,AP,broad,native
-Chamaedaphne,Chamaedaphne,yes,SP,not_native_tree,native
-Chimaphila,Chimaphila,yes,HP,not_native_tree,native
-Cichorioideae,Cichorioideae,yes,HP,not_native_tree,native
-Cistaceae,Cistaceae,yes,SP,not_native_tree,native
-Cistus,Cistus,yes,SP,not_native_tree,native
-Citrullus,Citrullus,yes,SP,not_native_tree,native
-Clematis,Clematis,yes,SP,not_native_tree,native
-Clethra,Clethra,yes,SP,not_native_tree,native
-Clusiaceae,Clusiaceae,yes,AP,broad,native
-Colchicaceae,Colchicaceae,yes,HP,not_native_tree,native
-Colutea,Colutea,yes,SP,not_native_tree,native
-Consolida,Consolida,yes,HP,not_native_tree,native
-Convolvulaceae,Convolvulaceae,yes,SP,not_native_tree,native
-Coprosma,Coprosma,yes,not_native,not_native_tree,not native to Europe
-Coriaria,Coriaria,yes,SP,not_native_tree,native
-Cornaceae,Cornaceae,yes,AP,broad,native
-Cornus,Cornus,yes,AP,broad,native
-Corylopsis,Corylopsis,yes,not_native,not_native_tree,not native to Europe
-Corylus,Corylus,yes,AP,broad,native
-Cotinus,Cotinus,yes,SP,not_native_tree,native
-Cotoneaster,Cotoneaster,yes,SP,not_native_tree,native
-Crassulaceae,Crassulaceae,yes,HP,not_native_tree,native
-Crataegus,Crataegus,yes,SP,not_native_tree,native
-Cryptomeria,Cryptomeria,yes,not_native,not_native_tree,not native to Europe
-Cucurbitaceae,Cucurbitaceae,yes,SP,not_native_tree,native
-Cupressaceae,Cupressaceae,yes,AP,needle,native
-Cynomorium,Cynomorium,no,HP,not_native_tree,native
-Cyperaceae,Cyperaceae,yes,HP,not_native_tree,native
-Cytinaceae,Cytinaceae,,HP,not_native_tree,native
-Daphne,Daphne,yes,SP,not_native_tree,native
-Datisca,Datisca,yes,HP,not_native_tree,native
-Delphinium,Delphinium,yes,HP,not_native_tree,native
-Diapensia,Diapensia,yes,SP,not_native_tree,native
-Dioscoreaceae,Dioscoreaceae,yes,SP,not_native_tree,native
-Dryas,Dryas,yes,SP,not_native_tree,native
-Elaeagnaceae,Elaeagnaceae,yes,AP,broad,native
-Elaeagnus,Elaeagnus,yes,AP,broad,native
-Empetrum,Empetrum,yes,SP,not_native_tree,native
-Ephedra,Ephedra,yes,SP,not_native_tree,native
-Equisetum,Equisetum,no,HP,not_native_tree,native
-Erica,Erica,yes,SP,not_native_tree,native
-Bruckenthalia,Erica,yes,SP,not_native_tree,native
-Ericaceae,Ericaceae,yes,SP,not_native_tree,native
-Eucalyptus,Eucalyptus,yes,not_native,not_native_tree,not native to Europe
-Euonymus,Euonymus,yes,SP,not_native_tree,native
-Euphorbiaceae,Euphorbiaceae,yes,HP,not_native_tree,native
-Fabaceae,Fabaceae,yes,AP,broad,native
-Fabaceae (herbs),Fabaceae (herbs),yes,HP,not_native_tree,native
-Fagus,Fagus,yes,AP,broad,native
-Ficus,Ficus,yes,AP,broad,native
-Flueggea,Flueggea,yes,SP,not_native_tree,native
-Forsythia,Forsythia,yes,SP,not_native_tree,native
-Fothergilla,Fothergilla,yes,not_native,not_native_tree,not native to Europe
-Frangula,Frangula,yes,SP,not_native_tree,native
-Frankeniaceae,Frankeniaceae,yes,SP,not_native_tree,native
-Fraxinus,Fraxinus,yes,AP,broad,native
-Genisteae,Genisteae,yes,SP,not_native_tree,native
-Gentianaceae,Gentianaceae,yes,HP,not_native_tree,native
-Geraniaceae,Geraniaceae,yes,HP,not_native_tree,native
-Halimium,Halimium,yes,SP,not_native_tree,native
-Haloragaceae,Haloragaceae,no,HP,not_native_tree,native
-Hedera,Hedera,yes,SP,not_native_tree,native
-Helianthemum,Helianthemum,yes,SP,not_native_tree,native
-Helleborus,Helleborus,yes,HP,not_native_tree,native
-Hippophae,Hippophae,yes,SP,not_native_tree,native
-Huperzia,Huperzia,no,HP,not_native_tree,native
-Hymenophyllaceae,Hymenophyllaceae,no,HP,not_native_tree,native
-Hypericaceae,Hypericaceae,yes,HP,not_native_tree,native
-Ilex,Ilex,yes,AP,broad,native
-Impatiens,Impatiens,yes,HP,not_native_tree,native
-Iridaceae,Iridaceae,yes,HP,not_native_tree,native
-Jasminum,Jasminum,yes,not_native,not_native_tree,not native to Europe
-Juglandaceae,Juglandaceae,yes,AP,broad,native
-Juglans,Juglans,yes,AP,broad,native
-Juncaceae,Juncaceae,no,HP,not_native_tree,native
-Kalmia,Kalmia,yes,SP,not_native_tree,native
-Keteleeria,Keteleeria,yes,not_native,not_native_tree,not native to Europe
-Koenigia,Koenigia,yes,HP,not_native_tree,native
-Laburnum,Laburnum,yes,AP,broad,native
-Lamiaceae,Lamiaceae,yes,HP,not_native_tree,native
-Larix,Larix,yes,AP,needle,native
-Larix/Pseudotsuga,Larix/Pseudotsuga,yes,AP,needle,native
-Laurus,Laurus,yes,AP,broad,native
-Lavandula,Lavandula,yes,SP,not_native_tree,native
-Ledum,Ledum,yes,SP,not_native_tree,native
-Ligustrum,Ligustrum,yes,SP,not_native_tree,native
-Liliaceae,Liliaceae,yes,HP,not_native_tree,native
-Linaceae,Linaceae,yes,HP,not_native_tree,native
-Linnaea,Linnaea,yes,SP,not_native_tree,native
-Linum,Linum,yes,HP,not_native_tree,native
-Lonicera,Lonicera,yes,SP,not_native_tree,native
-Loranthaceae,Loranthaceae,no,HP,not_native_tree,native
-Lycopodiella,Lycopodiella,no,HP,not_native_tree,native
-Lycopodium,Lycopodium,no,HP,not_native_tree,native
-Lysimachia,Lysimachia,yes,HP,not_native_tree,native
-Lythraceae,Lythraceae,yes,HP,not_native_tree,native
-Magnolia,Magnolia,yes,not_native,not_native_tree,not native to Europe
-Magnoliaceae,Magnoliaceae,yes,not_native,not_native_tree,not native to Europe
-Malus,Malus,yes,AP,broad,native
-Malus/Pyrus,Malus/Pyrus,yes,AP,broad,native
-Malva,Malva,yes,HP,not_native_tree,native
-Malvaceae,Malvaceae,yes,SP,not_native_tree,native
-Melanthiaceae,Melanthiaceae,yes,HP,not_native_tree,native
-Mercurialis,Mercurialis,yes,HP,not_native_tree,native
-Moltkia,Moltkia,yes,SP,not_native_tree,native
-Montiaceae,Montiaceae,yes,SP,not_native_tree,native
-Moraceae,Moraceae,yes,AP,broad,native
-Morus,Morus,yes,not_native,not_native_tree,not native to Europe
-Myrica,Myrica,yes,SP,not_native_tree,native
-Myricaria,Myricaria,yes,SP,not_native_tree,native
-Myrtaceae,Myrtaceae,yes,AP,broad,native
-Nartheciaceae,Nartheciaceae,yes,HP,not_native_tree,native
-Nerium,Nerium,yes,SP,not_native_tree,native
-Nigella,Nigella,yes,HP,not_native_tree,native
-Nitrariaceae,Nitrariaceae,yes,SP,not_native_tree,native
-Olea,Olea,yes,AP,broad,native
-Oleaceae,Oleaceae,yes,AP,broad,native
-Onagraceae,Onagraceae,yes,HP,not_native_tree,native
-Ononis,Ononis,yes,SP,not_native_tree,native
-Ophioglossaceae,Ophioglossaceae,no,HP,not_native_tree,native
-Orchidaceae,Orchidaceae,yes,HP,not_native_tree,native
-Orobanchaceae,Orobanchaceae,no,HP,not_native_tree,native
-Osmundaceae,Osmundaceae,no,HP,not_native_tree,native
-Oxalidaceae,Oxalidaceae,yes,HP,not_native_tree,native
-Oxyria/Rumex,Oxyria/Rumex,yes,HP,not_native_tree,native
-Paeonia,Paeonia,yes,SP,not_native_tree,native
-Paliurus,Paliurus,yes,SP,not_native_tree,native
-Papaveraceae,Papaveraceae,yes,HP,not_native_tree,native
-Parrotia,Parrotia,yes,not_native,not_native_tree,not native to Europe
-Periploca,Periploca,yes,SP,not_native_tree,native
-Phillyrea,Phillyrea,yes,SP,not_native_tree,native
-Phlomis,Phlomis,yes,SP,not_native_tree,native
-Phyllanthaceae,Phyllanthaceae,yes,HP,not_native_tree,native
-Picea,Picea,yes,AP,needle,native
-Pinus,Pinus,yes,AP,needle,native
-Pinus (diploxylon),Pinus (diploxylon),yes,AP,needle,native
-Pinus (haploxylon),Pinus (haploxylon),yes,AP,needle,native
-Pistacia,Pistacia,yes,AP,broad,native
-Plantaginaceae,Plantaginaceae,yes,HP,not_native_tree,native
-Platanus,Platanus,yes,AP,broad,native
-Plumbaginaceae,Plumbaginaceae,yes,HP,not_native_tree,native
-Poaceae,Poaceae,yes,HP,not_native_tree,native
-Polemoniaceae,Polemoniaceae,yes,HP,not_native_tree,native
-Polygalaceae,Polygalaceae,yes,HP,not_native_tree,native
-Polygonaceae,Polygonaceae,yes,HP,not_native_tree,native
-Polygonum,Polygonum,yes,HP,not_native_tree,native
-Polypodiales,Polypodiales,yes,HP,not_native_tree,native
-Populus,Populus,yes,AP,broad,native
-Portulacaceae,Portulacaceae,yes,HP,not_native_tree,native
-Potentilla,Potentilla,yes,SP,not_native_tree,native
-Primulaceae,Primulaceae,yes,HP,not_native_tree,native
-Prosopis,Prosopis,yes,not_native,not_native_tree,not native to Europe
-Prunus,Prunus,yes,AP,broad,native
-Pseudotsuga,Pseudotsuga,yes,not_native,not_native_tree,not native to Europe
-Pteridaceae,Pteridaceae,no,HP,not_native_tree,native
-Pterocarya,Pterocarya,yes,not_native,not_native_tree,not native to Europe
-Punica,Punica,yes,not_native,not_native_tree,not native to Europe
-Pyrus,Pyrus,yes,AP,broad,native
-Quercus,Quercus,yes,AP,broad,native
-Quercus deciduous,Quercus deciduous,yes,AP,broad,native
-Quercus evergreen,Quercus evergreen,yes,AP,broad,native
-Ranunculaceae,Ranunculaceae,yes,HP,not_native_tree,native
-Ranunculus,Ranunculus,yes,HP,not_native_tree,native
-Resedaceae,Resedaceae,yes,HP,not_native_tree,native
-Rhamnaceae,Rhamnaceae,yes,SP,not_native_tree,native
-Rhamnus,Rhamnus,yes,SP,not_native_tree,native
-Rhododendron,Rhododendron,yes,SP,not_native_tree,native
-Rhus,Rhus,yes,SP,not_native_tree,native
-Ribes,Ribes,yes,SP,not_native_tree,native
-Robinia,Robinia,yes,not_native,not_native_tree,not native to Europe
-Rosaceae,Rosaceae,yes,SP,not_native_tree,native
-Rubiaceae,Rubiaceae,yes,HP,not_native_tree,native
-Rubus,Rubus,yes,SP,not_native_tree,native
-Ruscus,Ruscus,yes,SP,not_native_tree,native
-Rutaceae,Rutaceae,yes,HP,not_native_tree,native
-Salix,Salix,yes,AP,broad,native
-Salvia,Salvia,yes,SP,not_native_tree,native
-Rosmarinus,Salvia,yes,SP,not_native_tree,native
-Sambucus,Sambucus,yes,SP,not_native_tree,native
-Sanguisorba group,Sanguisorba,yes,HP,not_native_tree,native
-Santalaceae,Santalaceae,yes,HP,not_native_tree,native
-Sapotaceae,Sapotaceae,yes,SP,not_native_tree,native
-Saxifragaceae,Saxifragaceae,yes,HP,not_native_tree,native
-Scrophulariaceae,Scrophulariaceae,yes,HP,not_native_tree,native
-Argania,Sideroxylon spinosum,yes,not_native,not_native_tree,not native to Europe
-Smilax,Smilax,yes,SP,not_native_tree,native
-Solanaceae,Solanaceae,yes,HP,not_native_tree,native
-Sorbus,Sorbus,yes,AP,broad,native
-Staphyleaceae,Staphyleaceae,yes,AP,broad,native
-Sterculia,Sterculia,yes,not_native,not_native_tree,not native to Europe
-Styrax,Styrax,yes,SP,not_native_tree,native
-Suaeda,Suaeda,yes,SP,not_native_tree,native
-Syringa,Syringa,yes,AP,broad,native
-Tamarix,Tamarix,yes,AP,broad,native
-Taxodium,Taxodium,yes,not_native,not_native_tree,not native to Europe
-Taxus,Taxus,yes,AP,needle,native
-Teucrium,Teucrium,yes,HP,not_native_tree,native
-Thalictrum,Thalictrum,yes,HP,not_native_tree,native
-Thymelaeaceae,Thymelaeaceae,yes,AP,broad,native
-Tilia,Tilia,yes,AP,broad,native
-Tofieldia,Tofieldia,yes,HP,not_native_tree,native
-Trollius,Trollius,yes,HP,not_native_tree,native
-Tsuga,Tsuga,yes,not_native,not_native_tree,not native to Europe
-Ulmus,Ulmus,yes,AP,broad,native
-Ulmus/Zelkova,Ulmus/Zelkova,yes,AP,broad,native
-Urticaceae,Urticaceae,yes,HP,not_native_tree,native
-Vaccinium,Vaccinium,yes,SP,not_native_tree,native
-Verbenaceae,Verbenaceae,yes,AP,broad,native
-Adoxaceae,Viburnaceae,yes,AP,broad,native
-Viburnum,Viburnum,yes,AP,broad,native
-Violaceae,Violaceae,yes,HP,not_native_tree,native
-Viscum,Viscum,no,HP,not_native_tree,native
-Vitex,Vitex,yes,AP,broad,native
-Ziziphus,Ziziphus,yes,SP,not_native_tree,native
-Zygophyllaceae,Zygophyllaceae,yes,HP,not_native_tree,native
-Pinus (Diploxylon),Pinus (diploxylon),yes,AP,needle,native
-Fontanesia,Fontanesia,yes,AP,broad,native
-Cannabaceae,Cannabaceae,yes,HP,not_native_tree,native
-Pinus (Haploxylon),Pinus (haploxylon),yes,AP,needle,native
-Anacardiaceae,Anacardiaceae,yes,AP,broad,native
-Nyssaceae,Nyssaceae,yes,not_native,not_native_tree,not native to Europe
-Betula (non-Chamaebetula),Betula,yes,AP,broad,native
-Citrus,Citrus,yes,AP,broad,native
-Liquidambar,Liquidambar,yes,not_native,not_native_tree,not native to Europe
-Nyssa,Nyssa,yes,not_native,not_native_tree,not native to Europe
-Ulmaceae,Ulmaceae,yes,AP,broad,native
-Dioscorea,Dioscorea,yes,SP,not_native_tree,native
-Casuarina,Casuarina,yes,not_native,not_native_tree,not native to Europe
-Sciadopityaceae,Sciadopityaceae,yes,not_native,not_native_tree,not native to Europe
-Engelhardia,Engelhardia,yes,not_native,not_native_tree,not native to Europe
-Balsaminaceae,Balsaminaceae,yes,HP,not_native_tree,native
-Calceolaria,Calceolaria,yes,not_native,not_native_tree,not native to Europe
-Davallia,Davallia,no,HP,not_native_tree,native
-Commelinaceae,Commelinaceae,yes,HP,not_native_tree,native
-Platycarya,Platycarya,yes,not_native,not_native_tree,not native to Europe
-Maytenus,Maytenus,yes,not_native,not_native_tree,not native to Europe
-Lycopodiaceae,Lycopodiaceae,no,HP,not_native_tree,native
-Phrymaceae,Phrymaceae,yes,not_native,not_native_tree,not native to Europe
-Myricaceae,Myricaceae,yes,AP,broad,native
-Liriodendron,Liriodendron,yes,not_native,not_native_tree,not native to Europe
-Linderniaceae,Linderniaceae,yes,HP,not_native_tree,native
-Osmanthus,Osmanthus,yes,SP,not_native_tree,native
-Alhagi,Alhagi,yes,SP,not_native_tree,native
-Juncaginaceae,Juncaginaceae,no,HP,not_native_tree,native
-Sequoia,Sequoia,yes,not_native,not_native_tree,not native to Europe
-Cupressaceae/Taxaceae,Cupressaceae/Taxaceae,yes,AP,needle,native
-Araliaceae,Araliaceae,yes,SP,not_native_tree,native
-Eriocaulaceae,Eriocaulaceae,yes,HP,not_native_tree,native
-Sapindaceae,Sapindaceae,yes,AP,broad,native
-Penthoraceae,Penthoraceae,yes,HP,not_native_tree,native
-Ephedraceae,Ephedraceae,yes,SP,not_native_tree,native
-Quercus intermediate,Quercus,yes,AP,broad,native
-Dennstaedtiaceae,Dennstaedtiaceae,no,HP,not_native_tree,native
-Viburnaceae,Viburnaceae,yes,AP,broad,native
-Acoraceae,Acoraceae,yes,not_native,not_native_tree,not native to Europe
-Podocarpaceae,Podocarpaceae,yes,not_native,not_native_tree,not native to Europe
-Moraceae/Urticaceae,Moraceae/Urticaceae,yes,AP,broad,native
+taxon_name,clean_taxon_name,terrestrial_pollen_sum,ap_sp_hp,ap_needle_broad,europe,pollination
+Abies,Abies,yes,AP,needle,native,wind
+Acacia,Acacia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Acanthaceae,Acanthaceae,yes,SP,not_native_tree,native,not_native_tree
+Acer,Acer,yes,AP,broad,native,wind
+Aconitum,Aconitum,yes,HP,not_native_tree,native,not_native_tree
+Cimicifuga,Actaea,yes,HP,not_native_tree,native,not_native_tree
+Actinidiaceae,Actinidiaceae,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Aesculus,Aesculus,yes,AP,broad,native,biotic
+Ailanthus,Ailanthus,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Aizoaceae,Aizoaceae,yes,HP,not_native_tree,native,not_native_tree
+Alnus,Alnus,yes,AP,broad,native,wind
+Alnus subgen Alnus,Alnus,yes,AP,broad,native,wind
+Alnus subgen Alnobetula,Alnus subg. Alnobetula,yes,AP,broad,native,wind
+Amaranthaceae,Amaranthaceae,yes,HP,not_native_tree,native,not_native_tree
+Amaryllidaceae,Amaryllidaceae,yes,HP,not_native_tree,native,not_native_tree
+Amorpha,Amorpha,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Andromeda,Andromeda,yes,SP,not_native_tree,native,not_native_tree
+Apiaceae,Apiaceae,yes,SP,not_native_tree,native,not_native_tree
+Apocynaceae,Apocynaceae,yes,HP,not_native_tree,native,not_native_tree
+Aquilegia,Aquilegia,yes,HP,not_native_tree,native,not_native_tree
+Araceae,Araceae,yes,HP,not_native_tree,native,not_native_tree
+Arbutus,Arbutus,yes,AP,broad,native,biotic
+Arctostaphylos,Arctostaphylos,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Arecaceae,Arecaceae,yes,AP,broad,native,dual
+Aristolochiaceae,Aristolochiaceae,yes,SP,not_native_tree,native,not_native_tree
+Artemisia,Artemisia,yes,SP,not_native_tree,native,not_native_tree
+Asparagaceae,Asparagaceae,yes,SP,not_native_tree,native,not_native_tree
+Asphodelaceae,Asphodelaceae,yes,HP,not_native_tree,native,not_native_tree
+Asteraceae,Asteraceae,yes,HP,not_native_tree,native,not_native_tree
+Asteraceae (Liguliflorae),Asteraceae (Liguliflorae),yes,HP,not_native_tree,native,not_native_tree
+Asteroideae,Asteroideae,yes,HP,not_native_tree,native,not_native_tree
+Astragalus,Astragalus,yes,SP,not_native_tree,native,not_native_tree
+Berberidaceae,Berberidaceae,yes,SP,not_native_tree,native,not_native_tree
+Berberis,Berberis,yes,SP,not_native_tree,native,not_native_tree
+Betula,Betula,yes,AP,broad,native,wind
+Betula (Chamaebetula),Betula chamaebetula,yes,AP,broad,native,wind
+Bifaria,Bifaria,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Boraginaceae,Boraginaceae,yes,HP,not_native_tree,native,not_native_tree
+Brassicaceae,Brassicaceae,yes,HP,not_native_tree,native,not_native_tree
+Buddleia,Buddleia,yes,SP,not_native_tree,native,not_native_tree
+Buxus,Buxus,yes,AP,broad,native,wind
+Calicotome,Calicotome,yes,SP,not_native_tree,native,not_native_tree
+Calluna,Calluna,yes,SP,not_native_tree,native,not_native_tree
+Camellia,Camellia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Campanulaceae,Campanulaceae,yes,HP,not_native_tree,native,not_native_tree
+Cannabaceae (trees),Cannabaceae,yes,HP,not_native_tree,native,not_native_tree
+Capparaceae,Capparaceae,yes,SP,not_native_tree,native,not_native_tree
+Caprifoliaceae,Caprifoliaceae,yes,SP,not_native_tree,native,not_native_tree
+Valerianaceae,Caprifoliaceae,yes,SP,not_native_tree,native,not_native_tree
+Carduoideae,Carduoideae,yes,HP,not_native_tree,native,not_native_tree
+Carpinus,Carpinus,yes,AP,broad,native,wind
+Carpinus betulus,Carpinus betulus,yes,AP,broad,native,wind
+Carpinus orientalis/Ostrya,Carpinus orientalis/Ostrya,yes,AP,broad,native,wind
+Carya,Carya,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Caryophyllaceae,Caryophyllaceae,yes,HP,not_native_tree,native,not_native_tree
+Cassiope,Cassiope,yes,SP,not_native_tree,native,not_native_tree
+Castanea,Castanea,yes,AP,broad,native,wind
+Cedrus,Cedrus,yes,AP,needle,native,wind
+Celastraceae,Celastraceae,yes,HP,not_native_tree,native,not_native_tree
+Celtis,Celtis,yes,AP,broad,native,wind
+Ceratonia,Ceratonia,yes,AP,broad,native,dual
+Cercis,Cercis,yes,AP,broad,native,biotic
+Chamaedaphne,Chamaedaphne,yes,SP,not_native_tree,native,not_native_tree
+Chimaphila,Chimaphila,yes,HP,not_native_tree,native,not_native_tree
+Cichorioideae,Cichorioideae,yes,HP,not_native_tree,native,not_native_tree
+Cistaceae,Cistaceae,yes,SP,not_native_tree,native,not_native_tree
+Cistus,Cistus,yes,SP,not_native_tree,native,not_native_tree
+Citrullus,Citrullus,yes,SP,not_native_tree,native,not_native_tree
+Clematis,Clematis,yes,SP,not_native_tree,native,not_native_tree
+Clethra,Clethra,yes,SP,not_native_tree,native,not_native_tree
+Clusiaceae,Clusiaceae,yes,AP,broad,native,biotic
+Colchicaceae,Colchicaceae,yes,HP,not_native_tree,native,not_native_tree
+Colutea,Colutea,yes,SP,not_native_tree,native,not_native_tree
+Consolida,Consolida,yes,HP,not_native_tree,native,not_native_tree
+Convolvulaceae,Convolvulaceae,yes,SP,not_native_tree,native,not_native_tree
+Coprosma,Coprosma,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Coriaria,Coriaria,yes,SP,not_native_tree,native,not_native_tree
+Cornaceae,Cornaceae,yes,AP,broad,native,dual
+Cornus,Cornus,yes,AP,broad,native,biotic
+Corylopsis,Corylopsis,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Corylus,Corylus,yes,AP,broad,native,wind
+Cotinus,Cotinus,yes,SP,not_native_tree,native,not_native_tree
+Cotoneaster,Cotoneaster,yes,SP,not_native_tree,native,not_native_tree
+Crassulaceae,Crassulaceae,yes,HP,not_native_tree,native,not_native_tree
+Crataegus,Crataegus,yes,SP,not_native_tree,native,not_native_tree
+Cryptomeria,Cryptomeria,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Cucurbitaceae,Cucurbitaceae,yes,SP,not_native_tree,native,not_native_tree
+Cupressaceae,Cupressaceae,yes,AP,needle,native,wind
+Cynomorium,Cynomorium,no,HP,not_native_tree,native,not_native_tree
+Cyperaceae,Cyperaceae,yes,HP,not_native_tree,native,not_native_tree
+Cytinaceae,Cytinaceae,,HP,not_native_tree,native,not_native_tree
+Daphne,Daphne,yes,SP,not_native_tree,native,not_native_tree
+Datisca,Datisca,yes,HP,not_native_tree,native,not_native_tree
+Delphinium,Delphinium,yes,HP,not_native_tree,native,not_native_tree
+Diapensia,Diapensia,yes,SP,not_native_tree,native,not_native_tree
+Dioscoreaceae,Dioscoreaceae,yes,SP,not_native_tree,native,not_native_tree
+Dryas,Dryas,yes,SP,not_native_tree,native,not_native_tree
+Elaeagnaceae,Elaeagnaceae,yes,AP,broad,native,dual
+Elaeagnus,Elaeagnus,yes,AP,broad,native,biotic
+Empetrum,Empetrum,yes,SP,not_native_tree,native,not_native_tree
+Ephedra,Ephedra,yes,SP,not_native_tree,native,not_native_tree
+Equisetum,Equisetum,no,HP,not_native_tree,native,not_native_tree
+Erica,Erica,yes,SP,not_native_tree,native,not_native_tree
+Bruckenthalia,Erica,yes,SP,not_native_tree,native,not_native_tree
+Ericaceae,Ericaceae,yes,SP,not_native_tree,native,not_native_tree
+Eucalyptus,Eucalyptus,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Euonymus,Euonymus,yes,SP,not_native_tree,native,not_native_tree
+Euphorbiaceae,Euphorbiaceae,yes,HP,not_native_tree,native,not_native_tree
+Fabaceae,Fabaceae,yes,AP,broad,native,dual
+Fabaceae (herbs),Fabaceae (herbs),yes,HP,not_native_tree,native,not_native_tree
+Fagus,Fagus,yes,AP,broad,native,wind
+Ficus,Ficus,yes,AP,broad,native,biotic
+Flueggea,Flueggea,yes,SP,not_native_tree,native,not_native_tree
+Forsythia,Forsythia,yes,SP,not_native_tree,native,not_native_tree
+Fothergilla,Fothergilla,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Frangula,Frangula,yes,SP,not_native_tree,native,not_native_tree
+Frankeniaceae,Frankeniaceae,yes,SP,not_native_tree,native,not_native_tree
+Fraxinus,Fraxinus,yes,AP,broad,native,wind
+Genisteae,Genisteae,yes,SP,not_native_tree,native,not_native_tree
+Gentianaceae,Gentianaceae,yes,HP,not_native_tree,native,not_native_tree
+Geraniaceae,Geraniaceae,yes,HP,not_native_tree,native,not_native_tree
+Halimium,Halimium,yes,SP,not_native_tree,native,not_native_tree
+Haloragaceae,Haloragaceae,no,HP,not_native_tree,native,not_native_tree
+Hedera,Hedera,yes,SP,not_native_tree,native,not_native_tree
+Helianthemum,Helianthemum,yes,SP,not_native_tree,native,not_native_tree
+Helleborus,Helleborus,yes,HP,not_native_tree,native,not_native_tree
+Hippophae,Hippophae,yes,SP,not_native_tree,native,not_native_tree
+Huperzia,Huperzia,no,HP,not_native_tree,native,not_native_tree
+Hymenophyllaceae,Hymenophyllaceae,no,HP,not_native_tree,native,not_native_tree
+Hypericaceae,Hypericaceae,yes,HP,not_native_tree,native,not_native_tree
+Ilex,Ilex,yes,AP,broad,native,biotic
+Impatiens,Impatiens,yes,HP,not_native_tree,native,not_native_tree
+Iridaceae,Iridaceae,yes,HP,not_native_tree,native,not_native_tree
+Jasminum,Jasminum,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Juglandaceae,Juglandaceae,yes,AP,broad,native,wind
+Juglans,Juglans,yes,AP,broad,native,wind
+Juncaceae,Juncaceae,no,HP,not_native_tree,native,not_native_tree
+Kalmia,Kalmia,yes,SP,not_native_tree,native,not_native_tree
+Keteleeria,Keteleeria,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Koenigia,Koenigia,yes,HP,not_native_tree,native,not_native_tree
+Laburnum,Laburnum,yes,AP,broad,native,biotic
+Lamiaceae,Lamiaceae,yes,HP,not_native_tree,native,not_native_tree
+Larix,Larix,yes,AP,needle,native,wind
+Larix/Pseudotsuga,Larix/Pseudotsuga,yes,AP,needle,native,wind
+Laurus,Laurus,yes,AP,broad,native,biotic
+Lavandula,Lavandula,yes,SP,not_native_tree,native,not_native_tree
+Ledum,Ledum,yes,SP,not_native_tree,native,not_native_tree
+Ligustrum,Ligustrum,yes,SP,not_native_tree,native,not_native_tree
+Liliaceae,Liliaceae,yes,HP,not_native_tree,native,not_native_tree
+Linaceae,Linaceae,yes,HP,not_native_tree,native,not_native_tree
+Linnaea,Linnaea,yes,SP,not_native_tree,native,not_native_tree
+Linum,Linum,yes,HP,not_native_tree,native,not_native_tree
+Lonicera,Lonicera,yes,SP,not_native_tree,native,not_native_tree
+Loranthaceae,Loranthaceae,no,HP,not_native_tree,native,not_native_tree
+Lycopodiella,Lycopodiella,no,HP,not_native_tree,native,not_native_tree
+Lycopodium,Lycopodium,no,HP,not_native_tree,native,not_native_tree
+Lysimachia,Lysimachia,yes,HP,not_native_tree,native,not_native_tree
+Lythraceae,Lythraceae,yes,HP,not_native_tree,native,not_native_tree
+Magnolia,Magnolia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Magnoliaceae,Magnoliaceae,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Malus,Malus,yes,AP,broad,native,biotic
+Malus/Pyrus,Malus/Pyrus,yes,AP,broad,native,biotic
+Malva,Malva,yes,HP,not_native_tree,native,not_native_tree
+Malvaceae,Malvaceae,yes,SP,not_native_tree,native,not_native_tree
+Melanthiaceae,Melanthiaceae,yes,HP,not_native_tree,native,not_native_tree
+Mercurialis,Mercurialis,yes,HP,not_native_tree,native,not_native_tree
+Moltkia,Moltkia,yes,SP,not_native_tree,native,not_native_tree
+Montiaceae,Montiaceae,yes,SP,not_native_tree,native,not_native_tree
+Moraceae,Moraceae,yes,AP,broad,native,dual
+Morus,Morus,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Myrica,Myrica,yes,SP,not_native_tree,native,not_native_tree
+Myricaria,Myricaria,yes,SP,not_native_tree,native,not_native_tree
+Myrtaceae,Myrtaceae,yes,AP,broad,native,dual
+Nartheciaceae,Nartheciaceae,yes,HP,not_native_tree,native,not_native_tree
+Nerium,Nerium,yes,SP,not_native_tree,native,not_native_tree
+Nigella,Nigella,yes,HP,not_native_tree,native,not_native_tree
+Nitrariaceae,Nitrariaceae,yes,SP,not_native_tree,native,not_native_tree
+Olea,Olea,yes,AP,broad,native,wind
+Oleaceae,Oleaceae,yes,AP,broad,native,dual
+Onagraceae,Onagraceae,yes,HP,not_native_tree,native,not_native_tree
+Ononis,Ononis,yes,SP,not_native_tree,native,not_native_tree
+Ophioglossaceae,Ophioglossaceae,no,HP,not_native_tree,native,not_native_tree
+Orchidaceae,Orchidaceae,yes,HP,not_native_tree,native,not_native_tree
+Orobanchaceae,Orobanchaceae,no,HP,not_native_tree,native,not_native_tree
+Osmundaceae,Osmundaceae,no,HP,not_native_tree,native,not_native_tree
+Oxalidaceae,Oxalidaceae,yes,HP,not_native_tree,native,not_native_tree
+Oxyria/Rumex,Oxyria/Rumex,yes,HP,not_native_tree,native,not_native_tree
+Paeonia,Paeonia,yes,SP,not_native_tree,native,not_native_tree
+Paliurus,Paliurus,yes,SP,not_native_tree,native,not_native_tree
+Papaveraceae,Papaveraceae,yes,HP,not_native_tree,native,not_native_tree
+Parrotia,Parrotia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Periploca,Periploca,yes,SP,not_native_tree,native,not_native_tree
+Phillyrea,Phillyrea,yes,SP,not_native_tree,native,not_native_tree
+Phlomis,Phlomis,yes,SP,not_native_tree,native,not_native_tree
+Phyllanthaceae,Phyllanthaceae,yes,HP,not_native_tree,native,not_native_tree
+Picea,Picea,yes,AP,needle,native,wind
+Pinus,Pinus,yes,AP,needle,native,wind
+Pinus (diploxylon),Pinus (diploxylon),yes,AP,needle,native,wind
+Pinus (haploxylon),Pinus (haploxylon),yes,AP,needle,native,wind
+Pistacia,Pistacia,yes,AP,broad,native,wind
+Plantaginaceae,Plantaginaceae,yes,HP,not_native_tree,native,not_native_tree
+Platanus,Platanus,yes,AP,broad,native,wind
+Plumbaginaceae,Plumbaginaceae,yes,HP,not_native_tree,native,not_native_tree
+Poaceae,Poaceae,yes,HP,not_native_tree,native,not_native_tree
+Polemoniaceae,Polemoniaceae,yes,HP,not_native_tree,native,not_native_tree
+Polygalaceae,Polygalaceae,yes,HP,not_native_tree,native,not_native_tree
+Polygonaceae,Polygonaceae,yes,HP,not_native_tree,native,not_native_tree
+Polygonum,Polygonum,yes,HP,not_native_tree,native,not_native_tree
+Polypodiales,Polypodiales,yes,HP,not_native_tree,native,not_native_tree
+Populus,Populus,yes,AP,broad,native,wind
+Portulacaceae,Portulacaceae,yes,HP,not_native_tree,native,not_native_tree
+Potentilla,Potentilla,yes,SP,not_native_tree,native,not_native_tree
+Primulaceae,Primulaceae,yes,HP,not_native_tree,native,not_native_tree
+Prosopis,Prosopis,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Prunus,Prunus,yes,AP,broad,native,biotic
+Pseudotsuga,Pseudotsuga,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Pteridaceae,Pteridaceae,no,HP,not_native_tree,native,not_native_tree
+Pterocarya,Pterocarya,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Punica,Punica,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Pyrus,Pyrus,yes,AP,broad,native,biotic
+Quercus,Quercus,yes,AP,broad,native,wind
+Quercus deciduous,Quercus deciduous,yes,AP,broad,native,wind
+Quercus evergreen,Quercus evergreen,yes,AP,broad,native,wind
+Ranunculaceae,Ranunculaceae,yes,HP,not_native_tree,native,not_native_tree
+Ranunculus,Ranunculus,yes,HP,not_native_tree,native,not_native_tree
+Resedaceae,Resedaceae,yes,HP,not_native_tree,native,not_native_tree
+Rhamnaceae,Rhamnaceae,yes,SP,not_native_tree,native,not_native_tree
+Rhamnus,Rhamnus,yes,SP,not_native_tree,native,not_native_tree
+Rhododendron,Rhododendron,yes,SP,not_native_tree,native,not_native_tree
+Rhus,Rhus,yes,SP,not_native_tree,native,not_native_tree
+Ribes,Ribes,yes,SP,not_native_tree,native,not_native_tree
+Robinia,Robinia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Rosaceae,Rosaceae,yes,SP,not_native_tree,native,not_native_tree
+Rubiaceae,Rubiaceae,yes,HP,not_native_tree,native,not_native_tree
+Rubus,Rubus,yes,SP,not_native_tree,native,not_native_tree
+Ruscus,Ruscus,yes,SP,not_native_tree,native,not_native_tree
+Rutaceae,Rutaceae,yes,HP,not_native_tree,native,not_native_tree
+Salix,Salix,yes,AP,broad,native,biotic
+Salvia,Salvia,yes,SP,not_native_tree,native,not_native_tree
+Rosmarinus,Salvia,yes,SP,not_native_tree,native,not_native_tree
+Sambucus,Sambucus,yes,SP,not_native_tree,native,not_native_tree
+Sanguisorba group,Sanguisorba,yes,HP,not_native_tree,native,not_native_tree
+Santalaceae,Santalaceae,yes,HP,not_native_tree,native,not_native_tree
+Sapotaceae,Sapotaceae,yes,SP,not_native_tree,native,not_native_tree
+Saxifragaceae,Saxifragaceae,yes,HP,not_native_tree,native,not_native_tree
+Scrophulariaceae,Scrophulariaceae,yes,HP,not_native_tree,native,not_native_tree
+Argania,Sideroxylon spinosum,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Smilax,Smilax,yes,SP,not_native_tree,native,not_native_tree
+Solanaceae,Solanaceae,yes,HP,not_native_tree,native,not_native_tree
+Sorbus,Sorbus,yes,AP,broad,native,biotic
+Staphyleaceae,Staphyleaceae,yes,AP,broad,native,biotic
+Sterculia,Sterculia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Styrax,Styrax,yes,SP,not_native_tree,native,not_native_tree
+Suaeda,Suaeda,yes,SP,not_native_tree,native,not_native_tree
+Syringa,Syringa,yes,AP,broad,native,biotic
+Tamarix,Tamarix,yes,AP,broad,native,biotic
+Taxodium,Taxodium,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Taxus,Taxus,yes,AP,needle,native,wind
+Teucrium,Teucrium,yes,HP,not_native_tree,native,not_native_tree
+Thalictrum,Thalictrum,yes,HP,not_native_tree,native,not_native_tree
+Thymelaeaceae,Thymelaeaceae,yes,AP,broad,native,dual
+Tilia,Tilia,yes,AP,broad,native,biotic
+Tofieldia,Tofieldia,yes,HP,not_native_tree,native,not_native_tree
+Trollius,Trollius,yes,HP,not_native_tree,native,not_native_tree
+Tsuga,Tsuga,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Ulmus,Ulmus,yes,AP,broad,native,wind
+Ulmus/Zelkova,Ulmus/Zelkova,yes,AP,broad,native,wind
+Urticaceae,Urticaceae,yes,HP,not_native_tree,native,not_native_tree
+Vaccinium,Vaccinium,yes,SP,not_native_tree,native,not_native_tree
+Verbenaceae,Verbenaceae,yes,AP,broad,native,dual
+Adoxaceae,Viburnaceae,yes,AP,broad,native,biotic
+Viburnum,Viburnum,yes,AP,broad,native,biotic
+Violaceae,Violaceae,yes,HP,not_native_tree,native,not_native_tree
+Viscum,Viscum,no,HP,not_native_tree,native,not_native_tree
+Vitex,Vitex,yes,AP,broad,native,biotic
+Ziziphus,Ziziphus,yes,SP,not_native_tree,native,not_native_tree
+Zygophyllaceae,Zygophyllaceae,yes,HP,not_native_tree,native,not_native_tree
+Pinus (Diploxylon),Pinus (diploxylon),yes,AP,needle,native,wind
+Fontanesia,Fontanesia,yes,AP,broad,native,biotic
+Cannabaceae,Cannabaceae,yes,HP,not_native_tree,native,not_native_tree
+Pinus (Haploxylon),Pinus (haploxylon),yes,AP,needle,native,wind
+Anacardiaceae,Anacardiaceae,yes,AP,broad,native,dual
+Nyssaceae,Nyssaceae,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Betula (non-Chamaebetula),Betula,yes,AP,broad,native,wind
+Citrus,Citrus,yes,AP,broad,native,biotic
+Liquidambar,Liquidambar,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Nyssa,Nyssa,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Ulmaceae,Ulmaceae,yes,AP,broad,native,wind
+Dioscorea,Dioscorea,yes,SP,not_native_tree,native,not_native_tree
+Casuarina,Casuarina,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Sciadopityaceae,Sciadopityaceae,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Engelhardia,Engelhardia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Balsaminaceae,Balsaminaceae,yes,HP,not_native_tree,native,not_native_tree
+Calceolaria,Calceolaria,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Davallia,Davallia,no,HP,not_native_tree,native,not_native_tree
+Commelinaceae,Commelinaceae,yes,HP,not_native_tree,native,not_native_tree
+Platycarya,Platycarya,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Maytenus,Maytenus,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Lycopodiaceae,Lycopodiaceae,no,HP,not_native_tree,native,not_native_tree
+Phrymaceae,Phrymaceae,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Myricaceae,Myricaceae,yes,AP,broad,native,wind
+Liriodendron,Liriodendron,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Linderniaceae,Linderniaceae,yes,HP,not_native_tree,native,not_native_tree
+Osmanthus,Osmanthus,yes,SP,not_native_tree,native,not_native_tree
+Alhagi,Alhagi,yes,SP,not_native_tree,native,not_native_tree
+Juncaginaceae,Juncaginaceae,no,HP,not_native_tree,native,not_native_tree
+Sequoia,Sequoia,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Cupressaceae/Taxaceae,Cupressaceae/Taxaceae,yes,AP,needle,native,wind
+Araliaceae,Araliaceae,yes,SP,not_native_tree,native,not_native_tree
+Eriocaulaceae,Eriocaulaceae,yes,HP,not_native_tree,native,not_native_tree
+Sapindaceae,Sapindaceae,yes,AP,broad,native,dual
+Penthoraceae,Penthoraceae,yes,HP,not_native_tree,native,not_native_tree
+Ephedraceae,Ephedraceae,yes,SP,not_native_tree,native,not_native_tree
+Quercus intermediate,Quercus,yes,AP,broad,native,wind
+Dennstaedtiaceae,Dennstaedtiaceae,no,HP,not_native_tree,native,not_native_tree
+Viburnaceae,Viburnaceae,yes,AP,broad,native,biotic
+Acoraceae,Acoraceae,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Podocarpaceae,Podocarpaceae,yes,not_native,not_native_tree,not native to Europe,not native to Europe
+Moraceae/Urticaceae,Moraceae/Urticaceae,yes,AP,broad,native,dual
